@@ -1,0 +1,17 @@
+# Environment variables
+.env
+
+# Flutter / Dart
+mobile/build/
+.dart_tool/
+mobile/.pub/
+mobile/pubspec.lock
+
+# Docker volumes
+Mongo/
+Ollama/
+
+# OS / IDE files
+.DS_Store
+.vscode/
+.idea/
