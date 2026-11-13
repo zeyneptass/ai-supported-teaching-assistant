@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -6,9 +7,13 @@ import '../errors/exceptions.dart';
 import 'http_service.dart';
 
 class HttpServiceImpl implements HttpService {
-  HttpServiceImpl({http.Client? client}) : _client = client ?? http.Client();
+  HttpServiceImpl({
+    http.Client? client,
+    this.timeout = const Duration(seconds: 150),
+  }) : _client = client ?? http.Client();
 
   final http.Client _client;
+  final Duration timeout;
 
   static const _jsonHeaders = {
     'Content-Type': 'application/json',
@@ -20,10 +25,15 @@ class HttpServiceImpl implements HttpService {
     String url, {
     Map<String, String>? headers,
   }) async {
-    return _handle(() => _client.get(Uri.parse(url), headers: {
+    return _handle(
+      () => _client.get(
+        Uri.parse(url),
+        headers: {
           ..._jsonHeaders,
           ...?headers,
-        }));
+        },
+      ),
+    );
   }
 
   @override
@@ -32,21 +42,23 @@ class HttpServiceImpl implements HttpService {
     Map<String, String>? headers,
     Object? body,
   }) async {
-    return _handle(() => _client.post(
-          Uri.parse(url),
-          headers: {
-            ..._jsonHeaders,
-            ...?headers,
-          },
-          body: body == null ? null : jsonEncode(body),
-        ));
+    return _handle(
+      () => _client.post(
+        Uri.parse(url),
+        headers: {
+          ..._jsonHeaders,
+          ...?headers,
+        },
+        body: body == null ? null : jsonEncode(body),
+      ),
+    );
   }
 
   Future<Map<String, dynamic>> _handle(
     Future<http.Response> Function() request,
   ) async {
     try {
-      final response = await request();
+      final response = await request().timeout(timeout);
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw ServerException(
           'HTTP ${response.statusCode}: ${response.body}',
@@ -60,6 +72,10 @@ class HttpServiceImpl implements HttpService {
         return decoded;
       }
       return {'data': decoded};
+    } on TimeoutException {
+      throw NetworkException(
+        'İstek zaman aşımına uğradı. Asistan yanıtı ${timeout.inSeconds} saniyeyi aştı.',
+      );
     } on AppException {
       rethrow;
     } catch (error) {

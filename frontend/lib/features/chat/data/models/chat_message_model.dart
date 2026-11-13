@@ -8,17 +8,7 @@ class ChatMessageModel extends ChatMessage {
     required super.createdAt,
   });
 
-  factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
-    return ChatMessageModel(
-      id: json['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      content: (json['answer'] ?? json['content'] ?? json['message'] ?? '')
-          .toString(),
-      role: MessageRole.assistant,
-      createdAt: DateTime.now(),
-    );
-  }
-
-  factory ChatMessageModel.assistant(String content) {
+  factory ChatMessageModel.fromResponse(String content) {
     return ChatMessageModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       content: content,

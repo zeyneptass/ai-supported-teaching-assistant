@@ -2,8 +2,10 @@
 abstract final class ApiEndpoints {
   ApiEndpoints._();
 
-  static const String n8nBaseUrl = 'http://localhost:5678';
+  /// Android emülatörde host makine localhost karşılığı.
+  //static const String n8nBaseUrl = 'http://10.0.2.2:5678';
+  static const String askEndpoint = 'http://localhost:5678';
 
   /// n8n sohbet webhook'u.
-  static const String askWebhook = '$n8nBaseUrl/webhook/ask';
+  static const String askWebhook = '$askEndpoint/webhook/ask';
 }

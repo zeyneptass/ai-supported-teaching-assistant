@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/errors/result.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/usecases/ask_question.dart';
-import '../../../../core/errors/result.dart';
 
 class ChatViewModel extends ChangeNotifier {
   ChatViewModel(this._askQuestion);
@@ -18,11 +18,16 @@ class ChatViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   Future<void> sendQuestion(String question) async {
+    if (_isLoading) return;
+
+    final trimmed = question.trim();
+    if (trimmed.isEmpty) return;
+
     _errorMessage = null;
     _messages.add(
       ChatMessage(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        content: question,
+        content: trimmed,
         role: MessageRole.user,
         createdAt: DateTime.now(),
       ),
@@ -30,10 +35,14 @@ class ChatViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final result = await _askQuestion(question);
+    final result = await _askQuestion(trimmed);
     switch (result) {
       case Success(:final data):
-        _messages.add(data);
+        if (data.content.trim().isEmpty) {
+          _errorMessage = 'Asistandan boş yanıt geldi.';
+        } else {
+          _messages.add(data);
+        }
       case Error(:final failure):
         _errorMessage = failure.message;
     }

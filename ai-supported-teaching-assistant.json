@@ -5,12 +5,13 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "ask",
+        "responseMode": "responseNode",
         "options": {}
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.2,
       "position": [
-        -544,
+        -640,
         16
       ],
       "id": "665505dc-0d75-49ef-a88b-e260ddb3a0a8",
@@ -28,11 +29,15 @@
         "messages": {
           "values": [
             {
-              "content": "={{ $json.body.message }}"
+              "content": "=Sen yardımcı bir eğitim asistanısın. Tüm sorulara mutlaka Türkçe yanıt ver. Soru: {{ $json.body.message || $json.body.question || $json.body.prompt || $json.body.text || $json.message }}"
             }
           ]
         },
-        "options": {}
+        "options": {
+          "keep_alive": "10m",
+          "low_vram": "={{ false }}",
+          "num_gpu": 1
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.ollama",
       "typeVersion": 1,
@@ -78,13 +83,13 @@
             {
               "id": "78accc2f-6d9f-4c59-b6d7-99cf99e0db59",
               "name": "user_message",
-              "value": "={{ $('Webhook').item.json.body.message }}",
+              "value": "={{ $('Webhook').item.json.body.message || $('Webhook').item.json.body.question || $('Webhook').item.json.body.prompt || $('Webhook').item.json.body.text }}",
               "type": "string"
             },
             {
               "id": "56eb372b-fd23-432e-b9ea-b40c15fe9121",
               "name": "ai_response",
-              "value": "={{ $json.content }}",
+              "value": "={{ $('Message a model').item.json.content || $('Message a model').item.json.text || $('Message a model').item.json.output }}",
               "type": "string"
             }
           ]
@@ -99,6 +104,21 @@
       ],
       "id": "a9b3af77-a770-4ae8-802f-e72d97d4d37e",
       "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ \"response\": $json.ai_response, \"reply\": $json.ai_response, \"ai_response\": $json.ai_response }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        560,
+        16
+      ],
+      "id": "afe25028-8c21-4fd7-a26b-be10b22e1faf",
+      "name": "Respond to Webhook"
     }
   ],
   "pinData": {
@@ -163,14 +183,25 @@
           }
         ]
       ]
+    },
+    "Insert documents": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "9156b355-5adb-4972-8207-699eab41d466",
+  "versionId": "e7f03735-6275-458c-8c8a-74fe1ff0bf00",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "1088ad103aedc6e90beea111fa18dbbe4df66cfe5dbf499ea68ca10a2c664a6c"
