@@ -16,7 +16,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   Future<ChatMessageModel> askQuestion(String question) async {
     final json = await _httpService.post(
       ApiEndpoints.askWebhook,
-      body: {'question': question},
+      body: {'message': question},
     );
 
     final raw = json['response'];

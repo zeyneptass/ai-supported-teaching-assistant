@@ -9,16 +9,22 @@ void main() {
   ) async {
     await tester.pumpWidget(const MyApp());
 
-    expect(find.text('Giriş yap'), findsOneWidget);
+    expect(find.text('Giriş Yap'), findsOneWidget);
 
     await tester.enterText(
-      find.byType(TextFormField),
+      find.byKey(const ValueKey('login-email')),
       'ogrenci@example.com',
     );
-    await tester.tap(find.text('Giriş yap'));
+    await tester.enterText(
+      find.byKey(const ValueKey('login-password')),
+      'guvenli123',
+    );
+    await tester.tap(find.text('Giriş Yap'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Sohbet'), findsOneWidget);
+    expect(find.text('Öğretim Asistanı'), findsOneWidget);
+    expect(find.text('Çevrimiçi'), findsOneWidget);
+    expect(find.text('Python list yapısı nedir?'), findsOneWidget);
     expect(find.text('Sorunuzu yazın...'), findsOneWidget);
   });
 }

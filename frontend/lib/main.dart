@@ -7,6 +7,7 @@ import 'features/chat/data/repositories/chat_repository_impl.dart';
 import 'features/chat/domain/usecases/ask_question.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/chat/presentation/viewmodels/chat_view_model.dart';
+import 'core/theme/app_theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -26,9 +27,7 @@ class MyApp extends StatelessWidget {
       },
       child: MaterialApp(
         title: 'AI Destekli Öğretim Asistanı',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        ),
+        theme: AppTheme.light,
         home: const LoginScreen(),
       ),
     );
