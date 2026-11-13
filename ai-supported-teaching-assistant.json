@@ -1,0 +1,181 @@
+{
+  "name": "ai-supported-teaching-assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ask",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        -544,
+        16
+      ],
+      "id": "665505dc-0d75-49ef-a88b-e260ddb3a0a8",
+      "name": "Webhook",
+      "webhookId": "c35ac65b-e20d-4ae9-b3f4-7bb1202920e2"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "qwen2.5:3b",
+          "mode": "list",
+          "cachedResultName": "qwen2.5:3b"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.body.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.ollama",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        16
+      ],
+      "id": "1f9b4d77-c918-4bb4-bc24-c1490a6344f6",
+      "name": "Message a model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "wai1X8C8ZIQVfKDG",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "=chat_history",
+        "fields": "=user_message, ai_response ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.5,
+      "position": [
+        336,
+        16
+      ],
+      "id": "cd565f55-83bd-4ce7-b35a-89bf72da8df0",
+      "name": "Insert documents",
+      "credentials": {
+        "mongoDb": {
+          "id": "rEX3jElleMrcE9M7",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "78accc2f-6d9f-4c59-b6d7-99cf99e0db59",
+              "name": "user_message",
+              "value": "={{ $('Webhook').item.json.body.message }}",
+              "type": "string"
+            },
+            {
+              "id": "56eb372b-fd23-432e-b9ea-b40c15fe9121",
+              "name": "ai_response",
+              "value": "={{ $json.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        48,
+        16
+      ],
+      "id": "a9b3af77-a770-4ae8-802f-e72d97d4d37e",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "content-type": "application/json",
+            "user-agent": "PostmanRuntime/7.53.0",
+            "accept": "*/*",
+            "cache-control": "no-cache",
+            "postman-token": "5d293b39-1e35-4be9-8ee8-bd10b682f924",
+            "host": "localhost:5678",
+            "accept-encoding": "gzip, deflate, br",
+            "connection": "keep-alive",
+            "content-length": "37"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "message": "2. test message."
+          },
+          "webhookUrl": "http://localhost:5678/webhook-test/ask",
+          "executionMode": "test"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Insert documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9156b355-5adb-4972-8207-699eab41d466",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1088ad103aedc6e90beea111fa18dbbe4df66cfe5dbf499ea68ca10a2c664a6c"
+  },
+  "nodeGroups": [],
+  "id": "pPEOHHcCWpawdTOB",
+  "tags": []
+}
