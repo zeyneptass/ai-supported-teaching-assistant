@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
+import '../../../notes/presentation/screens/notes_screen.dart';
 import '../viewmodels/chat_view_model.dart';
 import '../widgets/message_bubble.dart';
 
@@ -72,9 +73,7 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 Text(
                   'Öğretim Asistanı',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
+                  style: Theme.of(context).textTheme.titleSmall
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 3),
@@ -91,9 +90,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     const SizedBox(width: 6),
                     Text(
                       'Çevrimiçi',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: const Color(0xFF64748B),
-                          ),
+                      style: Theme.of(context).textTheme.labelSmall
+                          ?.copyWith(color: const Color(0xFF64748B)),
                     ),
                   ],
                 ),
@@ -102,6 +100,15 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Ders Notları',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const NotesScreen()),
+              );
+            },
+            icon: const Icon(Icons.library_books_outlined),
+          ),
           IconButton(
             tooltip: 'Çıkış yap',
             onPressed: _logout,
@@ -118,7 +125,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 : ListView.builder(
                     padding: const EdgeInsets.only(top: 12, bottom: 12),
                     itemCount:
-                        viewModel.messages.length + (viewModel.isLoading ? 1 : 0),
+                        viewModel.messages.length +
+                        (viewModel.isLoading ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == viewModel.messages.length) {
                         return const _TypingIndicator();
@@ -193,8 +201,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       style: IconButton.styleFrom(
                         backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor:
-                            AppTheme.primary.withValues(alpha: 0.35),
+                        disabledBackgroundColor: AppTheme.primary.withValues(
+                          alpha: 0.35,
+                        ),
                       ),
                       icon: const Icon(Icons.arrow_upward_rounded, size: 21),
                     ),
@@ -239,18 +248,16 @@ class _ChatScreenState extends State<ChatScreen> {
               'Merhaba! Nasıl yardımcı olabilirim?',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0F172A),
-                  ),
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF0F172A),
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               'Bir soru sor veya aşağıdaki örneklerden biriyle başla.',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF64748B),
-                    height: 1.5,
-                  ),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: const Color(0xFF64748B), height: 1.5),
             ),
             const SizedBox(height: 24),
             Wrap(
@@ -325,9 +332,8 @@ class _TypingIndicatorState extends State<_TypingIndicator>
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border.all(color: AppTheme.border),
-          borderRadius: BorderRadius.circular(16).copyWith(
-            topLeft: const Radius.circular(4),
-          ),
+          borderRadius: BorderRadius.circular(16)
+              .copyWith(topLeft: const Radius.circular(4)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

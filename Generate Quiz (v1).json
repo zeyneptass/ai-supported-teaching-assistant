@@ -1,0 +1,194 @@
+{
+  "name": "Generate Quiz (v1)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-quiz",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "28169922-a80f-4dea-a274-fd4484f246be",
+      "name": "Webhook Generate Quiz",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -576,
+        16
+      ],
+      "webhookId": "generate-quiz-webhook"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "qwen2.5:3b",
+          "mode": "list",
+          "cachedResultName": "qwen2.5:3b"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Aşağıdaki metinden Türkçe 5 adet çoktan seçmeli soru üret. Sadece şu JSON şemasını döndür:\n{\"questions\":[{\"question\":\"...\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"correct_answer\":\"doğru şık metni\"}]}\n\nMetin: {{ $json.body.text }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.2,
+          "num_predict": 700,
+          "format": "json"
+        }
+      },
+      "id": "04c13dd3-78e7-481e-9560-6f5322cf7825",
+      "name": "Ollama Generate Quiz",
+      "type": "@n8n/n8n-nodes-langchain.ollama",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        16
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "ollamaApi": {
+          "id": "wai1X8C8ZIQVfKDG",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawOutput = $input.first().json.content || $input.first().json.text || $input.first().json.response || '';\n\nlet parsed;\ntry {\n  const cleaned = rawOutput.replace(/```json/gi, '').replace(/```/g, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  throw new Error('JSON_PARSE_ERROR: Model gecerli JSON uretmedi. Ham cikti: ' + rawOutput.slice(0, 150));\n}\n\nif (!parsed || !Array.isArray(parsed.questions)) {\n  throw new Error('SCHEMA_ERROR: questions dizisi bulunamadi.');\n}\n\nif (parsed.questions.length < 5) {\n  throw new Error(`VALIDATION_ERROR: En az 5 soru gerekli, uretilen: ${parsed.questions.length}`);\n}\n\nconst stripPrefix = (str) => String(str).replace(/^[A-Da-d][\\)\\.\\-\\:]\\s*/, '').trim().toLowerCase();\n\nconst validatedQuestions = parsed.questions.map((q, index) => {\n  if (!q.question || typeof q.question !== 'string') {\n    throw new Error(`VALIDATION_ERROR: Soru ${index + 1} metni gecersiz.`);\n  }\n  if (!Array.isArray(q.options) || q.options.length !== 4) {\n    throw new Error(`VALIDATION_ERROR: Soru ${index + 1} icin tam 4 secenek gerekli.`);\n  }\n\n  const options = q.options.map(opt => String(opt).trim());\n  const rawAnswer = String(q.correct_answer || '').trim();\n  let matchedOption = null;\n\n  // 1. Birebir eşleşme kontrolü\n  if (options.includes(rawAnswer)) {\n    matchedOption = rawAnswer;\n  }\n  // 2. Harf prefixi temizlenmiş metin eşleşmesi (Örn: \"A) LIFO\" vs \"LIFO\")\n  else {\n    const cleanAns = stripPrefix(rawAnswer);\n    matchedOption = options.find(opt => stripPrefix(opt) === cleanAns);\n  }\n  // 3. Sadece harf döndürdüyse (Örn: \"A\", \"B\", \"C\", \"D\") indeks üzerinden eşleştir\n  if (!matchedOption && /^[A-Da-d][\\)\\.]?$/.test(rawAnswer)) {\n    const letterIndex = rawAnswer.toUpperCase().charCodeAt(0) - 65;\n    if (letterIndex >= 0 && letterIndex < 4) {\n      matchedOption = options[letterIndex];\n    }\n  }\n\n  if (!matchedOption) {\n    throw new Error(`VALIDATION_ERROR: Soru ${index + 1} correct_answer (${rawAnswer}) secenekler icinde yer almiyor.`);\n  }\n\n  return {\n    id: index + 1,\n    question: q.question.trim(),\n    options: options,\n    correct_answer: matchedOption\n  };\n});\n\nconst webhookBody = $('Webhook Generate Quiz').first().json.body || {};\n\nreturn [\n  {\n    json: {\n      source_id: webhookBody.source_id || null,\n      title: webhookBody.title || 'Ders Testi',\n      questions: validatedQuestions,\n      created_at: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "id": "4e13ba94-9263-4774-bde9-9620f067735a",
+      "name": "Validate Quiz Schema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "quizzes",
+        "fields": "source_id, title, questions, created_at",
+        "options": {}
+      },
+      "id": "ca7dc09f-d1ea-4735-803c-2903c76d5172",
+      "name": "MongoDB Insert Quiz",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        160,
+        16
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "rEX3jElleMrcE9M7",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const validatedData = $('Validate Quiz Schema').first().json;\nconst mongoResult = $input.first().json;\n\nconst clientQuestions = validatedData.questions.map(q => ({\n  id: q.id,\n  question: q.question,\n  options: q.options\n}));\n\nreturn [\n  {\n    json: {\n      quiz_id: mongoResult._id || mongoResult.insertedId || null,\n      title: validatedData.title,\n      total_questions: clientQuestions.length,\n      questions: clientQuestions\n    }\n  }\n];"
+      },
+      "id": "c3eaee89-023d-42e1-9839-2a7fcf9117bf",
+      "name": "Hide Correct Answers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "bd70d43a-815c-4033-883e-5ffad964b795",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        16
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Generate Quiz": {
+      "main": [
+        [
+          {
+            "node": "Ollama Generate Quiz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Generate Quiz": {
+      "main": [
+        [
+          {
+            "node": "Validate Quiz Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Quiz Schema": {
+      "main": [
+        [
+          {
+            "node": "MongoDB Insert Quiz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB Insert Quiz": {
+      "main": [
+        [
+          {
+            "node": "Hide Correct Answers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hide Correct Answers": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ddc25aad-1df7-4605-9791-8bcc3d52b5fb",
+  "meta": {
+    "instanceId": "1088ad103aedc6e90beea111fa18dbbe4df66cfe5dbf499ea68ca10a2c664a6c"
+  },
+  "nodeGroups": [],
+  "id": "36Fd9WiAukXkejLi",
+  "tags": []
+}
