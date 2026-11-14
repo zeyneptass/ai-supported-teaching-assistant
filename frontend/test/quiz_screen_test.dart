@@ -5,6 +5,7 @@ import 'package:frontend/features/notes/domain/entities/quiz.dart';
 import 'package:frontend/features/notes/domain/entities/quiz_submission_result.dart';
 import 'package:frontend/features/notes/domain/repositories/notes_repository.dart';
 import 'package:frontend/features/notes/presentation/screens/quiz_screen.dart';
+import 'package:frontend/features/notes/presentation/screens/quiz_result_screen.dart';
 import 'package:frontend/features/notes/presentation/viewmodels/notes_view_model.dart';
 import 'package:frontend/features/notes/domain/usecases/generate_quiz.dart';
 import 'package:frontend/features/notes/domain/usecases/summarize_lesson.dart';
@@ -12,7 +13,7 @@ import 'package:frontend/features/notes/domain/usecases/submit_quiz.dart';
 import 'package:provider/provider.dart';
 
 void main() {
-  testWidgets('submits selected answers and displays server grading', (
+  testWidgets('submits answers and navigates to detailed result screen', (
     tester,
   ) async {
     const quiz = Quiz(
@@ -37,9 +38,18 @@ void main() {
     await tester.pumpWidget(
       ChangeNotifierProvider.value(
         value: viewModel,
-        child: const MaterialApp(home: QuizScreen(quiz: quiz)),
+        child: MaterialApp(
+          initialRoute: '/notes',
+          routes: {
+            '/notes': (_) => const Scaffold(body: Text('Notlar ekranı')),
+            '/quiz': (_) => const QuizScreen(quiz: quiz),
+          },
+        ),
       ),
     );
+    await tester.pumpAndSettle();
+    Navigator.of(tester.element(find.text('Notlar ekranı'))).pushNamed('/quiz');
+    await tester.pumpAndSettle();
 
     final completeButton = find.text('Yanıtlanan: 0/1');
     expect(completeButton, findsOneWidget);
@@ -63,21 +73,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(repository.submittedQuizId, 'quiz-1');
     expect(repository.submittedAnswers, {1: 'Sıfırdan'});
-    expect(find.text('Test Sonucu'), findsOneWidget);
-    expect(find.text('Başarı oranı: 100%'), findsOneWidget);
-    expect(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is RichText &&
-            widget.text.toPlainText() == 'Doğru cevap: Sıfırdan',
-      ),
-      findsOneWidget,
-    );
+    expect(find.byType(QuizResultScreen), findsOneWidget);
+    expect(find.text('Test Sonuçları ve Çözüm Analizi'), findsOneWidget);
+    expect(find.text('%100'), findsOneWidget);
+    expect(find.text('Sizin cevabınız • Doğru cevap'), findsOneWidget);
     expect(find.text('İndeksler sıfırdan başlar.'), findsOneWidget);
 
-    await tester.tap(find.text('Kapat'));
+    await tester.tap(find.text('Ders Notlarına Dön'));
     await tester.pumpAndSettle();
-    expect(find.text('Sonuçları Gör'), findsOneWidget);
+    expect(find.text('Notlar ekranı'), findsOneWidget);
   });
 }
 
@@ -89,6 +93,7 @@ class _FakeNotesRepository implements NotesRepository {
   Future<QuizSubmissionResult> submitQuiz({
     required String quizId,
     required Map<int, String> answers,
+    required Quiz quiz,
   }) async {
     submittedQuizId = quizId;
     submittedAnswers = Map.of(answers);
@@ -98,9 +103,10 @@ class _FakeNotesRepository implements NotesRepository {
       correctCount: 1,
       scorePercent: 100,
       results: [
-        QuizQuestionResult(
-          questionId: 1,
+        QuestionResult(
+          id: 1,
           question: 'Listeler nasıl indekslenir?',
+          options: ['Sıfırdan', 'Birden', 'Rastgele', 'İndeks yoktur'],
           selectedAnswer: 'Sıfırdan',
           correctAnswer: 'Sıfırdan',
           isCorrect: true,

@@ -17,5 +17,6 @@ abstract interface class NotesRepository {
   Future<QuizSubmissionResult> submitQuiz({
     required String quizId,
     required Map<int, String> answers,
+    required Quiz quiz,
   });
 }

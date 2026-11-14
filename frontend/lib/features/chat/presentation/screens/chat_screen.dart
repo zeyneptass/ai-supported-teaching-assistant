@@ -50,6 +50,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final viewModel = context.watch<ChatViewModel>();
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         titleSpacing: 16,
         title: Row(
@@ -104,7 +105,10 @@ class _ChatScreenState extends State<ChatScreen> {
             tooltip: 'Ders Notları',
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const NotesScreen()),
+                MaterialPageRoute<void>(
+                  builder: (_) => const NotesScreen(),
+                  settings: const RouteSettings(name: NotesScreen.routeName),
+                ),
               );
             },
             icon: const Icon(Icons.library_books_outlined),
@@ -177,6 +181,10 @@ class _ChatScreenState extends State<ChatScreen> {
                       controller: _controller,
                       focusNode: _focusNode,
                       enabled: !viewModel.isLoading,
+                      minLines: 1,
+                      maxLines: 6,
+                      keyboardType: TextInputType.multiline,
+                      textInputAction: TextInputAction.newline,
                       decoration: const InputDecoration(
                         hintText: 'Sorunuzu yazın...',
                         filled: false,

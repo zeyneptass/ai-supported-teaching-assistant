@@ -21,3 +21,6 @@ soruya ait doğru/yanlış durumu, doğru cevap ve açıklama sonuçlarda göste
 Yanıt biçimi `quiz_id`, `total_questions`, `correct_count`, `score_percent` ve
 `results` dizisindeki `question_id`, `question`, `selected_answer`,
 `correct_answer`, `is_correct`, `explanation` alanlarını içerir.
+İstemci doğrudan nesne, tek elemanlı liste veya `data`/`body` ile sarılmış JSON
+yanıtlarını kabul eder; eksik soru seçeneklerini ve metnini oluşturulan testten
+tamamlar, eksik açıklamalar için doğru cevabı belirten varsayılan bir not gösterir.

@@ -9,5 +9,6 @@ abstract class HttpService {
     String url, {
     Map<String, String>? headers,
     Object? body,
+    Duration? timeout,
   });
 }

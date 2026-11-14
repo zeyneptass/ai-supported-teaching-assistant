@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/constants/api_endpoints.dart';
 import 'package:frontend/core/network/http_service_impl.dart';
 import 'package:frontend/features/notes/data/datasources/notes_remote_data_source.dart';
+import 'package:frontend/features/notes/domain/entities/quiz.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
@@ -129,10 +130,28 @@ void main() {
     final dataSource = NotesRemoteDataSourceImpl(
       HttpServiceImpl(client: client),
     );
+    const quiz = Quiz(
+      quizId: 'quiz-1',
+      title: 'Programlama',
+      totalQuestions: 2,
+      questions: [
+        QuizQuestion(
+          id: 1,
+          question: 'Birinci soru?',
+          options: ['Sıfırdan', 'Birden', 'Rastgele', 'İndeks yoktur'],
+        ),
+        QuizQuestion(
+          id: 2,
+          question: 'İkinci soru?',
+          options: ['Sıfırdan', 'Birden', 'Rastgele', 'İndeks yoktur'],
+        ),
+      ],
+    );
 
     final result = await dataSource.submitQuiz(
       quizId: 'quiz-1',
       answers: {1: 'Sıfırdan', 2: 'İndeks yoktur'},
+      quiz: quiz,
     );
 
     expect(result.correctCount, 1);

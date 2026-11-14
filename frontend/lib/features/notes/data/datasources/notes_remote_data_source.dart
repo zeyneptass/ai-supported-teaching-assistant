@@ -1,6 +1,7 @@
 import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/network/http_service.dart';
+import '../../domain/entities/quiz.dart';
 import '../models/lesson_summary_model.dart';
 import '../models/quiz_model.dart';
 import '../models/quiz_submission_result_model.dart';
@@ -20,6 +21,7 @@ abstract interface class NotesRemoteDataSource {
   Future<QuizSubmissionResultModel> submitQuiz({
     required String quizId,
     required Map<int, String> answers,
+    required Quiz quiz,
   });
 }
 
@@ -36,6 +38,7 @@ class NotesRemoteDataSourceImpl implements NotesRemoteDataSource {
     final json = await _httpService.post(
       ApiEndpoints.summarizeWebhook,
       body: {'title': title, 'text': text},
+      timeout: const Duration(seconds: 120),
     );
     try {
       return LessonSummaryModel.fromJson(json);
@@ -59,6 +62,7 @@ class NotesRemoteDataSourceImpl implements NotesRemoteDataSource {
             'title': title,
             'text': text,
           },
+          timeout: const Duration(seconds: 120),
         );
         return QuizModel.fromJson(json);
       } catch (_) {
@@ -73,6 +77,7 @@ class NotesRemoteDataSourceImpl implements NotesRemoteDataSource {
   Future<QuizSubmissionResultModel> submitQuiz({
     required String quizId,
     required Map<int, String> answers,
+    required Quiz quiz,
   }) async {
     final json = await _httpService.post(
       ApiEndpoints.submitQuizWebhook,
@@ -85,10 +90,10 @@ class NotesRemoteDataSourceImpl implements NotesRemoteDataSource {
       },
     );
 
-    try {
-      return QuizSubmissionResultModel.fromJson(json);
-    } on FormatException catch (error) {
-      throw ServerException(error.message);
-    }
+    return QuizSubmissionResultModel.fromJson(
+      json,
+      quiz: quiz,
+      answers: answers,
+    );
   }
 }

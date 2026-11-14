@@ -65,11 +65,16 @@ class NotesViewModel extends ChangeNotifier {
   Future<QuizSubmissionResult?> submitQuiz({
     required String quizId,
     required Map<int, String> answers,
+    required Quiz quiz,
   }) async {
     if (_isLoading) return null;
     _startLoading('Cevaplarınız kontrol ediliyor...');
 
-    final result = await _submitQuiz(quizId: quizId, answers: answers);
+    final result = await _submitQuiz(
+      quizId: quizId,
+      answers: answers,
+      quiz: quiz,
+    );
     switch (result) {
       case Success<QuizSubmissionResult>(:final data):
         _finishLoading();

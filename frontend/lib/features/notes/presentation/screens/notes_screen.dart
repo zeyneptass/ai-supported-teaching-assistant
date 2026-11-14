@@ -13,6 +13,8 @@ import 'quiz_screen.dart';
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key});
 
+  static const routeName = '/notes';
+
   @override
   State<NotesScreen> createState() => _NotesScreenState();
 }
@@ -129,6 +131,7 @@ class _NotesScreenState extends State<NotesScreen> {
   Widget build(BuildContext context) {
     final viewModel = context.watch<NotesViewModel>();
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text('Ders Notları'),
         leading: IconButton(
@@ -163,8 +166,10 @@ class _NotesScreenState extends State<NotesScreen> {
               TextFormField(
                 controller: _textController,
                 enabled: !viewModel.isLoading,
-                minLines: 8,
-                maxLines: 14,
+                minLines: 4,
+                maxLines: 6,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
                 textCapitalization: TextCapitalization.sentences,
                 textAlignVertical: TextAlignVertical.top,
                 decoration: const InputDecoration(

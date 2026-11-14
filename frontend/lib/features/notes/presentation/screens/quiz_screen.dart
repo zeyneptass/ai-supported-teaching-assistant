@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/quiz.dart';
-import '../../domain/entities/quiz_submission_result.dart';
 import '../viewmodels/notes_view_model.dart';
+import 'quiz_result_screen.dart';
 
 class QuizScreen extends StatefulWidget {
   const QuizScreen({super.key, required this.quiz});
@@ -17,7 +17,6 @@ class QuizScreen extends StatefulWidget {
 
 class _QuizScreenState extends State<QuizScreen> {
   final Map<int, String> _answers = {};
-  QuizSubmissionResult? _submissionResult;
 
   bool get _isComplete => widget.quiz.questions.every(
     (question) => _answers.containsKey(question.id),
@@ -25,151 +24,15 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Future<void> _completeQuiz(NotesViewModel viewModel) async {
     if (!_isComplete || viewModel.isLoading) return;
-    if (_submissionResult case final result?) {
-      await _showResults(result);
-      return;
-    }
-
     final result = await viewModel.submitQuiz(
       quizId: widget.quiz.quizId,
       answers: _answers,
+      quiz: widget.quiz,
     );
     if (!mounted || result == null) return;
-    setState(() => _submissionResult = result);
-    await _showResults(result);
-  }
-
-  Future<void> _showResults(QuizSubmissionResult result) async {
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        icon: const Icon(
-          Icons.verified_rounded,
-          color: AppTheme.primary,
-          size: 34,
-        ),
-        title: const Text('Test Sonucu'),
-        content: SizedBox(
-          width: 420,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${result.correctCount} / ${result.totalQuestions} doğru',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppTheme.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Başarı oranı: ${_formatScore(result.scorePercent)}%',
-                  style: const TextStyle(color: Color(0xFF64748B)),
-                ),
-                const SizedBox(height: 12),
-                ...result.results.map(
-                  (questionResult) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: questionResult.isCorrect
-                            ? const Color(0xFFF0FDF4)
-                            : const Color(0xFFFEF2F2),
-                        border: Border.all(
-                          color: questionResult.isCorrect
-                              ? const Color(0xFFBBF7D0)
-                              : const Color(0xFFFECACA),
-                        ),
-                        borderRadius: BorderRadius.circular(13),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(
-                                questionResult.isCorrect
-                                    ? Icons.check_circle_rounded
-                                    : Icons.cancel_rounded,
-                                size: 19,
-                                color: questionResult.isCorrect
-                                    ? const Color(0xFF16A34A)
-                                    : const Color(0xFFDC2626),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  questionResult.question,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          _answerLine(
-                            'Cevabınız',
-                            questionResult.selectedAnswer,
-                          ),
-                          _answerLine(
-                            'Doğru cevap',
-                            questionResult.correctAnswer,
-                          ),
-                          if (questionResult.explanation.trim().isNotEmpty) ...[
-                            const SizedBox(height: 7),
-                            Text(
-                              questionResult.explanation,
-                              style: const TextStyle(
-                                color: Color(0xFF475569),
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Kapat'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatScore(double score) {
-    return score == score.roundToDouble()
-        ? score.toStringAsFixed(0)
-        : score.toStringAsFixed(1);
-  }
-
-  Widget _answerLine(String label, String answer) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 3),
-      child: RichText(
-        text: TextSpan(
-          style: const TextStyle(color: Color(0xFF475569), fontSize: 13),
-          children: [
-            TextSpan(
-              text: '$label: ',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            TextSpan(text: answer),
-          ],
-        ),
+    await Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => QuizResultScreen(quiz: widget.quiz, result: result),
       ),
     );
   }
@@ -264,11 +127,11 @@ class _QuizScreenState extends State<QuizScreen> {
                           child: InkWell(
                             borderRadius: BorderRadius.circular(13),
                             onTap:
-                                viewModel.isLoading || _submissionResult != null
-                                ? null
-                                : () => setState(() {
-                                    _answers[question.id] = option;
-                                  }),
+                                viewModel.isLoading
+                                    ? null
+                                    : () => setState(() {
+                                        _answers[question.id] = option;
+                                      }),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 150),
                               width: double.infinity,
@@ -357,14 +220,10 @@ class _QuizScreenState extends State<QuizScreen> {
                       ? () => _completeQuiz(viewModel)
                       : null,
                   icon: Icon(
-                    _submissionResult == null
-                        ? Icons.check_rounded
-                        : Icons.assessment_outlined,
+                    Icons.check_rounded,
                   ),
                   label: Text(
-                    _submissionResult != null
-                        ? 'Sonuçları Gör'
-                        : _isComplete
+                    _isComplete
                         ? 'Testi Tamamla'
                         : 'Yanıtlanan: ${_answers.length}/${widget.quiz.questions.length}',
                   ),
