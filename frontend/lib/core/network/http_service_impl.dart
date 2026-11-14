@@ -41,6 +41,7 @@ class HttpServiceImpl implements HttpService {
     String url, {
     Map<String, String>? headers,
     Object? body,
+    Duration? timeout,
   }) async {
     return _handle(
       () => _client.post(
@@ -51,14 +52,17 @@ class HttpServiceImpl implements HttpService {
         },
         body: body == null ? null : jsonEncode(body),
       ),
+      timeout: timeout,
     );
   }
 
   Future<Map<String, dynamic>> _handle(
-    Future<http.Response> Function() request,
-  ) async {
+    Future<http.Response> Function() request, {
+    Duration? timeout,
+  }) async {
+    final requestTimeout = timeout ?? this.timeout;
     try {
-      final response = await request().timeout(timeout);
+      final response = await request().timeout(requestTimeout);
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw ServerException(
           'HTTP ${response.statusCode}: ${response.body}',
@@ -74,7 +78,7 @@ class HttpServiceImpl implements HttpService {
       return {'data': decoded};
     } on TimeoutException {
       throw NetworkException(
-        'İstek zaman aşımına uğradı. Asistan yanıtı ${timeout.inSeconds} saniyeyi aştı.',
+        'İstek zaman aşımına uğradı. Asistan yanıtı ${requestTimeout.inSeconds} saniyeyi aştı.',
       );
     } on AppException {
       rethrow;

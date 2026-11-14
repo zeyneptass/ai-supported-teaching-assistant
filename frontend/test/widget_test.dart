@@ -26,5 +26,11 @@ void main() {
     expect(find.text('Çevrimiçi'), findsOneWidget);
     expect(find.text('Python list yapısı nedir?'), findsOneWidget);
     expect(find.text('Sorunuzu yazın...'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Ders Notları'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('TXT Dosyası Seç'), findsOneWidget);
+    expect(find.text('Test Oluştur'), findsOneWidget);
   });
 }

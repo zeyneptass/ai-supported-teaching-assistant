@@ -1,0 +1,192 @@
+{
+  "name": "Summarize Course Notes (v1)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "summarize",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "25538765-4e87-4f51-8ea7-383ebc4d4b95",
+      "name": "Webhook Summarize",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        16
+      ],
+      "webhookId": "summarize-course-notes"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-title",
+              "name": "title",
+              "value": "={{ $('Webhook Summarize').item.json.body.title || 'Genel Ders Notu' }}",
+              "type": "string"
+            },
+            {
+              "id": "field-raw-text",
+              "name": "raw_text",
+              "value": "={{ $('Webhook Summarize').item.json.body.text }}",
+              "type": "string"
+            },
+            {
+              "id": "field-summary",
+              "name": "=summary",
+              "value": "={{ $json.content }}",
+              "type": "string"
+            },
+            {
+              "id": "field-created-at",
+              "name": "created_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fea7691d-950a-4951-abce-eb1224851738",
+      "name": "Prepare Source Document",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        384,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "sources",
+        "fields": "title, raw_text, summary, created_at",
+        "options": {}
+      },
+      "id": "2bd81c69-d24e-4f49-b33d-f80b5323cc04",
+      "name": "MongoDB Insert Source",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        624,
+        16
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "rEX3jElleMrcE9M7",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"source_id\": \"{{ $json._id || $json.insertedId }}\",\n  \"title\": \"{{ $('Prepare Source Document').item.json.title }}\",\n  \"summary\": {{ JSON.stringify($('Prepare Source Document').item.json.summary) }}\n}",
+        "options": {}
+      },
+      "id": "addef3c9-a6cd-43a3-a8dc-3056e973a5f8",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        864,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "qwen2.5:3b",
+          "mode": "list",
+          "cachedResultName": "qwen2.5:3b"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Sen uzman bir üniversite öğretim asistanısın. Aşağıdaki ders notunu analiz et ve öğrencinin sınava hazırlanmasını kolaylaştıracak şekilde açık, akıcı ve tamamen Türkçe olarak özetle.\n\nKurallar:\n1. Önce 2-3 cümlelik genel bir özet paragrafı yaz.\n2. Ardından 'Anahtar Kavramlar ve Önemli Noktalar' başlığı altında en kritik bilgileri madde işaretleriyle (bullet points) listele.\n3. Metinde olmayan hiçbir bilgiyi uydurma, sadece verilen metne sadık kal.\n\nDers Başlığı: {{ $json.body.title || 'Genel Ders Notu' }}\n\nDers Metni:\n{{ $json.body.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.ollama",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        16
+      ],
+      "id": "a100a97a-3bb3-4c89-afde-3fa6d47b49f9",
+      "name": "Message a model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "wai1X8C8ZIQVfKDG",
+          "name": "Ollama account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Summarize": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Source Document": {
+      "main": [
+        [
+          {
+            "node": "MongoDB Insert Source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB Insert Source": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Prepare Source Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "7aa6409f-3e5c-4c46-b2d9-52a8e7e1483a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1088ad103aedc6e90beea111fa18dbbe4df66cfe5dbf499ea68ca10a2c664a6c"
+  },
+  "nodeGroups": [],
+  "id": "zzbbNtlBkO3BAvi9",
+  "tags": []
+}
