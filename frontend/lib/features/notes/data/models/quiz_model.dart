@@ -48,8 +48,13 @@ class QuizModel extends Quiz {
       );
     }).toList(growable: false);
 
-    if (questions.isEmpty || totalQuestions != questions.length) {
-      throw const FormatException('Testte soru bulunamadı veya sayı uyuşmuyor.');
+    final questionIds = questions.map((question) => question.id).toSet();
+    if (questions.isEmpty ||
+        totalQuestions != questions.length ||
+        questionIds.length != questions.length) {
+      throw const FormatException(
+        'Test soruları eksik, yinelenen veya sayı ile uyumsuz.',
+      );
     }
 
     return QuizModel(

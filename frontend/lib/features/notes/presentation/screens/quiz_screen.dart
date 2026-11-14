@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/quiz.dart';
+import '../../domain/entities/quiz_submission_result.dart';
+import '../viewmodels/notes_view_model.dart';
 
 class QuizScreen extends StatefulWidget {
   const QuizScreen({super.key, required this.quiz});
@@ -14,21 +17,38 @@ class QuizScreen extends StatefulWidget {
 
 class _QuizScreenState extends State<QuizScreen> {
   final Map<int, String> _answers = {};
+  QuizSubmissionResult? _submissionResult;
 
-  bool get _isComplete => _answers.length == widget.quiz.questions.length;
+  bool get _isComplete => widget.quiz.questions.every(
+    (question) => _answers.containsKey(question.id),
+  );
 
-  Future<void> _completeQuiz() async {
-    if (!_isComplete) return;
+  Future<void> _completeQuiz(NotesViewModel viewModel) async {
+    if (!_isComplete || viewModel.isLoading) return;
+    if (_submissionResult case final result?) {
+      await _showResults(result);
+      return;
+    }
 
+    final result = await viewModel.submitQuiz(
+      quizId: widget.quiz.quizId,
+      answers: _answers,
+    );
+    if (!mounted || result == null) return;
+    setState(() => _submissionResult = result);
+    await _showResults(result);
+  }
+
+  Future<void> _showResults(QuizSubmissionResult result) async {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         icon: const Icon(
-          Icons.check_circle_outline_rounded,
-          color: AppTheme.accent,
+          Icons.verified_rounded,
+          color: AppTheme.primary,
           size: 34,
         ),
-        title: const Text('Test tamamlandı'),
+        title: const Text('Test Sonucu'),
         content: SizedBox(
           width: 420,
           child: SingleChildScrollView(
@@ -37,52 +57,126 @@ class _QuizScreenState extends State<QuizScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Seçimleriniz (${_answers.length}/${widget.quiz.questions.length}):',
-                  style: const TextStyle(
-                    color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w500,
+                  '${result.correctCount} / ${result.totalQuestions} doğru',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  'Başarı oranı: ${_formatScore(result.scorePercent)}%',
+                  style: const TextStyle(color: Color(0xFF64748B)),
+                ),
                 const SizedBox(height: 12),
-                ...List.generate(widget.quiz.questions.length, (index) {
-                  final question = widget.quiz.questions[index];
-                  return Padding(
+                ...result.results.map(
+                  (questionResult) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${index + 1}. ${question.question}',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: questionResult.isCorrect
+                            ? const Color(0xFFF0FDF4)
+                            : const Color(0xFFFEF2F2),
+                        border: Border.all(
+                          color: questionResult.isCorrect
+                              ? const Color(0xFFBBF7D0)
+                              : const Color(0xFFFECACA),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _answers[index]!,
-                          style: const TextStyle(color: AppTheme.primary),
-                        ),
-                      ],
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                questionResult.isCorrect
+                                    ? Icons.check_circle_rounded
+                                    : Icons.cancel_rounded,
+                                size: 19,
+                                color: questionResult.isCorrect
+                                    ? const Color(0xFF16A34A)
+                                    : const Color(0xFFDC2626),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  questionResult.question,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          _answerLine(
+                            'Cevabınız',
+                            questionResult.selectedAnswer,
+                          ),
+                          _answerLine(
+                            'Doğru cevap',
+                            questionResult.correctAnswer,
+                          ),
+                          if (questionResult.explanation.trim().isNotEmpty) ...[
+                            const SizedBox(height: 7),
+                            Text(
+                              questionResult.explanation,
+                              style: const TextStyle(
+                                color: Color(0xFF475569),
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                  );
-                }),
+                  ),
+                ),
               ],
             ),
           ),
         ),
         actions: [
           FilledButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-            },
-            child: const Text('Tamam'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Kapat'),
           ),
         ],
       ),
     );
   }
 
+  String _formatScore(double score) {
+    return score == score.roundToDouble()
+        ? score.toStringAsFixed(0)
+        : score.toStringAsFixed(1);
+  }
+
+  Widget _answerLine(String label, String answer) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: RichText(
+        text: TextSpan(
+          style: const TextStyle(color: Color(0xFF475569), fontSize: 13),
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            TextSpan(text: answer),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final viewModel = context.watch<NotesViewModel>();
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -112,7 +206,7 @@ class _QuizScreenState extends State<QuizScreen> {
               separatorBuilder: (_, _) => const SizedBox(height: 14),
               itemBuilder: (context, index) {
                 final question = widget.quiz.questions[index];
-                final selected = _answers[index];
+                final selected = _answers[question.id];
                 return Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -169,9 +263,12 @@ class _QuizScreenState extends State<QuizScreen> {
                           padding: const EdgeInsets.only(bottom: 8),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(13),
-                            onTap: () => setState(() {
-                              _answers[index] = option;
-                            }),
+                            onTap:
+                                viewModel.isLoading || _submissionResult != null
+                                ? null
+                                : () => setState(() {
+                                    _answers[question.id] = option;
+                                  }),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 150),
                               width: double.infinity,
@@ -227,6 +324,28 @@ class _QuizScreenState extends State<QuizScreen> {
               },
             ),
           ),
+          if (viewModel.errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
+              child: Text(
+                viewModel.errorMessage!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
+          if (viewModel.isLoading)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
+              child: Column(
+                children: [
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 8),
+                  Text(
+                    viewModel.statusMessage ?? 'Cevaplar kontrol ediliyor...',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
           SafeArea(
             top: false,
             child: Padding(
@@ -234,10 +353,18 @@ class _QuizScreenState extends State<QuizScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _isComplete ? _completeQuiz : null,
-                  icon: const Icon(Icons.check_rounded),
+                  onPressed: _isComplete && !viewModel.isLoading
+                      ? () => _completeQuiz(viewModel)
+                      : null,
+                  icon: Icon(
+                    _submissionResult == null
+                        ? Icons.check_rounded
+                        : Icons.assessment_outlined,
+                  ),
                   label: Text(
-                    _isComplete
+                    _submissionResult != null
+                        ? 'Sonuçları Gör'
+                        : _isComplete
                         ? 'Testi Tamamla'
                         : 'Yanıtlanan: ${_answers.length}/${widget.quiz.questions.length}',
                   ),

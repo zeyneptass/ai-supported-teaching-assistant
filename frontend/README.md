@@ -14,4 +14,10 @@ Test oluşturma `POST /webhook/generate-quiz` adresine `source_id`, `title` ve
 Her iki istek de mevcut 150 saniyelik HTTP timeout'unu kullanır.
 
 Test yanıtları yalnızca soru metni ve seçenekleri içerir. İstemci doğru cevap
-bilgisi beklemez; seçimler test ekranının belleğinde tutulur.
+bilgisi beklemez; seçimler test ekranının belleğinde tutulur. Test tamamlandığında
+seçimler `POST /webhook/submit-quiz` adresine `quiz_id` ve soru kimlikleri
+anahtarlı `answers` nesnesi olarak gönderilir. Sunucudan gelen puan, her
+soruya ait doğru/yanlış durumu, doğru cevap ve açıklama sonuçlarda gösterilir.
+Yanıt biçimi `quiz_id`, `total_questions`, `correct_count`, `score_percent` ve
+`results` dizisindeki `question_id`, `question`, `selected_answer`,
+`correct_answer`, `is_correct`, `explanation` alanlarını içerir.

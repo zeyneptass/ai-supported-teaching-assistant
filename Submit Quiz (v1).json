@@ -1,0 +1,122 @@
+{
+  "name": "Submit Quiz (v1)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "submit-quiz",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a43ce3d9-5c44-4502-b74c-c0902d6f34e9",
+      "name": "Webhook Submit Quiz",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        16
+      ],
+      "webhookId": "submit-quiz-webhook"
+    },
+    {
+      "parameters": {
+        "collection": "quizzes",
+        "options": {
+          "limit": 1,
+          "sort": "{ \"_id\": -1 }"
+        },
+        "query": "={}"
+      },
+      "id": "320b01bf-3f26-4ff5-8630-e3f4d7c9e784",
+      "name": "MongoDB Find Quiz",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        16
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "rEX3jElleMrcE9M7",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhookBody = $('Webhook Submit Quiz').first().json.body || {};\nconst userAnswers = webhookBody.answers || {};\nconst quizDoc = $input.first().json;\n\nif (!quizDoc || !Array.isArray(quizDoc.questions)) {\n  throw new Error('Quiz veritabaninda bulunamadi.');\n}\n\nlet correctCount = 0;\nconst results = quizDoc.questions.map((q) => {\n  const qId = String(q.id);\n  const selected = String(userAnswers[qId] || '').trim();\n  const correct = String(q.correct_answer || '').trim();\n  const isCorrect = selected === correct;\n  if (isCorrect) correctCount++;\n\n  return {\n    id: q.id,\n    question: q.question,\n    selected_answer: selected,\n    correct_answer: correct,\n    is_correct: isCorrect\n  };\n});\n\nconst total = quizDoc.questions.length;\nconst score = Math.round((correctCount / total) * 100);\n\nreturn [\n  {\n    json: {\n      quiz_id: quizDoc._id,\n      score: score,\n      correct_count: correctCount,\n      wrong_count: total - correctCount,\n      total_questions: total,\n      results: results\n    }\n  }\n];"
+      },
+      "id": "32da2780-7a6e-4137-aaed-3051edca9765",
+      "name": "Grade Quiz",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        128,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "1e76c340-04e5-43d9-85d7-9c86c18ec5d2",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        368,
+        16
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Submit Quiz": {
+      "main": [
+        [
+          {
+            "node": "MongoDB Find Quiz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB Find Quiz": {
+      "main": [
+        [
+          {
+            "node": "Grade Quiz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grade Quiz": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "1cc67c65-d121-4936-944d-c63f17618b31",
+  "meta": {
+    "instanceId": "1088ad103aedc6e90beea111fa18dbbe4df66cfe5dbf499ea68ca10a2c664a6c"
+  },
+  "nodeGroups": [],
+  "id": "zqq4Pqjit0aXkdKv",
+  "tags": []
+}

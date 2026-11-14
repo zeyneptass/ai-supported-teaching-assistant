@@ -1,5 +1,6 @@
 import '../../domain/entities/lesson_summary.dart';
 import '../../domain/entities/quiz.dart';
+import '../../domain/entities/quiz_submission_result.dart';
 import '../../domain/repositories/notes_repository.dart';
 import '../datasources/notes_remote_data_source.dart';
 
@@ -26,6 +27,17 @@ class NotesRepositoryImpl implements NotesRepository {
       sourceId: sourceId,
       title: title,
       text: text,
+    );
+  }
+
+  @override
+  Future<QuizSubmissionResult> submitQuiz({
+    required String quizId,
+    required Map<int, String> answers,
+  }) {
+    return _remoteDataSource.submitQuiz(
+      quizId: quizId,
+      answers: answers,
     );
   }
 }

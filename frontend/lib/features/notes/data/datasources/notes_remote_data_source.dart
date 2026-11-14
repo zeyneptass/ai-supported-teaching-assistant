@@ -3,6 +3,7 @@ import '../../../../core/errors/exceptions.dart';
 import '../../../../core/network/http_service.dart';
 import '../models/lesson_summary_model.dart';
 import '../models/quiz_model.dart';
+import '../models/quiz_submission_result_model.dart';
 
 abstract interface class NotesRemoteDataSource {
   Future<LessonSummaryModel> summarizeLesson({
@@ -14,6 +15,11 @@ abstract interface class NotesRemoteDataSource {
     required String sourceId,
     required String title,
     required String text,
+  });
+
+  Future<QuizSubmissionResultModel> submitQuiz({
+    required String quizId,
+    required Map<int, String> answers,
   });
 }
 
@@ -61,5 +67,28 @@ class NotesRemoteDataSourceImpl implements NotesRemoteDataSource {
     }
 
     throw const ServerException('Test oluşturulamadı.');
+  }
+
+  @override
+  Future<QuizSubmissionResultModel> submitQuiz({
+    required String quizId,
+    required Map<int, String> answers,
+  }) async {
+    final json = await _httpService.post(
+      ApiEndpoints.submitQuizWebhook,
+      body: {
+        'quiz_id': quizId,
+        'answers': {
+          for (final entry in answers.entries)
+            entry.key.toString(): entry.value,
+        },
+      },
+    );
+
+    try {
+      return QuizSubmissionResultModel.fromJson(json);
+    } on FormatException catch (error) {
+      throw ServerException(error.message);
+    }
   }
 }

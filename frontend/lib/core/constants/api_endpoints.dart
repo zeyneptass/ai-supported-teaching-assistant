@@ -14,4 +14,7 @@ abstract final class ApiEndpoints {
 
   /// n8n test oluşturma webhook'u.
   static const String generateQuizWebhook = '$askEndpoint/webhook/generate-quiz';
+
+  /// n8n test yanıtlarını değerlendirme webhook'u.
+  static const String submitQuizWebhook = '$askEndpoint/webhook/submit-quiz';
 }
