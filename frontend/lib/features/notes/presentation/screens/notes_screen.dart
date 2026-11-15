@@ -7,13 +7,16 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/lesson_summary.dart';
+import '../../domain/entities/saved_lesson.dart';
 import '../viewmodels/notes_view_model.dart';
 import 'quiz_screen.dart';
 
 class NotesScreen extends StatefulWidget {
-  const NotesScreen({super.key});
+  const NotesScreen({super.key, this.initialLesson});
 
   static const routeName = '/notes';
+
+  final SavedLesson? initialLesson;
 
   @override
   State<NotesScreen> createState() => _NotesScreenState();
@@ -26,6 +29,21 @@ class _NotesScreenState extends State<NotesScreen> {
   String? _selectedFileName;
   String? _summaryTitle;
   String? _summaryText;
+  LessonSummary? _savedSummary;
+  Future<void> Function()? _retryAction;
+
+  @override
+  void initState() {
+    super.initState();
+    final lesson = widget.initialLesson;
+    if (lesson != null) {
+      _titleController.text = lesson.title;
+      _textController.text = lesson.sourceText;
+      _summaryTitle = lesson.title;
+      _summaryText = lesson.sourceText;
+      _savedSummary = lesson.summary;
+    }
+  }
 
   @override
   void dispose() {
@@ -63,18 +81,40 @@ class _NotesScreenState extends State<NotesScreen> {
 
   void _onLessonChanged() {
     final viewModel = context.read<NotesViewModel>();
-    final summary = viewModel.summary;
+    final summary = _currentSummary(viewModel);
     if (summary != null &&
         (_titleController.text.trim() != _summaryTitle ||
             _textController.text.trim() != _summaryText)) {
-      _invalidateSummary(viewModel);
+      setState(() => _invalidateSummary(viewModel));
     }
   }
 
+  LessonSummary? _currentSummary(NotesViewModel viewModel) {
+    if (_savedSummary != null) return _savedSummary;
+    final summary = viewModel.summary;
+    if (summary == null ||
+        _summaryTitle == null ||
+        _summaryText == null ||
+        summary.title != _summaryTitle ||
+        _titleController.text.trim() != _summaryTitle ||
+        _textController.text.trim() != _summaryText) {
+      return null;
+    }
+    return summary;
+  }
+
   void _invalidateSummary(NotesViewModel viewModel) {
+    final savedSourceId = _savedSummary?.sourceId;
+    final summaryTitle = _summaryTitle;
+    final activeSummary = viewModel.summary;
     _summaryTitle = null;
     _summaryText = null;
-    if (viewModel.summary != null) viewModel.clearSummary();
+    _savedSummary = null;
+    if (activeSummary != null &&
+        (activeSummary.sourceId == savedSourceId ||
+            (summaryTitle != null && activeSummary.title == summaryTitle))) {
+      viewModel.clearSummary();
+    }
   }
 
   bool _validate() => _formKey.currentState?.validate() ?? false;
@@ -83,11 +123,15 @@ class _NotesScreenState extends State<NotesScreen> {
     if (!_validate() || viewModel.isLoading) return;
     final title = _titleController.text.trim();
     final text = _textController.text.trim();
+    _retryAction = () => _summarize(viewModel);
     await viewModel.summarize(title: title, text: text);
     if (!mounted) return;
+    setState(() => _savedSummary = null);
     if (viewModel.summary != null) {
-      _summaryTitle = title;
-      _summaryText = text;
+      setState(() {
+        _summaryTitle = title;
+        _summaryText = text;
+      });
     }
   }
 
@@ -95,15 +139,19 @@ class _NotesScreenState extends State<NotesScreen> {
     if (!_validate() || viewModel.isLoading) return;
     final title = _titleController.text.trim();
     final text = _textController.text.trim();
+    _retryAction = () => _createQuiz(viewModel);
 
-    var summary = viewModel.summary;
+    var summary = _currentSummary(viewModel);
     if (summary == null || _summaryTitle != title || _summaryText != text) {
       await viewModel.summarize(title: title, text: text);
       if (!mounted) return;
       summary = viewModel.summary;
       if (summary == null) return;
-      _summaryTitle = title;
-      _summaryText = text;
+      setState(() {
+        _savedSummary = null;
+        _summaryTitle = title;
+        _summaryText = text;
+      });
     }
 
     final quiz = await viewModel.generateQuiz(
@@ -130,6 +178,7 @@ class _NotesScreenState extends State<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<NotesViewModel>();
+    final summary = _currentSummary(viewModel);
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
@@ -253,20 +302,30 @@ class _NotesScreenState extends State<NotesScreen> {
               ),
               if (viewModel.isLoading) ...[
                 const SizedBox(height: 18),
-                const LinearProgressIndicator(),
-                const SizedBox(height: 10),
-                Text(
-                  viewModel.statusMessage ?? 'İşleminiz sürüyor...',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(color: const Color(0xFF64748B)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Text(
+                        viewModel.statusMessage ?? 'İşleminiz sürüyor...',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: const Color(0xFF64748B)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
               if (viewModel.errorMessage != null) ...[
                 const SizedBox(height: 16),
                 _buildError(viewModel.errorMessage!),
               ],
-              if (viewModel.summary case final summary?) ...[
+              if (summary != null) ...[
                 const SizedBox(height: 24),
                 _buildSummaryCard(context, viewModel, summary),
               ],
@@ -330,6 +389,11 @@ class _NotesScreenState extends State<NotesScreen> {
               style: const TextStyle(color: Color(0xFF991B1B)),
             ),
           ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: _retryAction == null ? null : () => _retryAction!.call(),
+            child: const Text('Tekrar Dene'),
+          ),
         ],
       ),
     );
@@ -379,7 +443,13 @@ class _NotesScreenState extends State<NotesScreen> {
               ),
               IconButton(
                 tooltip: 'Özeti temizle',
-                onPressed: viewModel.clearSummary,
+                onPressed: () {
+                  if (_savedSummary?.sourceId == summary.sourceId) {
+                    setState(() => _savedSummary = null);
+                  } else {
+                    viewModel.clearSummary();
+                  }
+                },
                 icon: const Icon(Icons.close_rounded),
               ),
             ],
@@ -388,6 +458,24 @@ class _NotesScreenState extends State<NotesScreen> {
             summary.title,
             style: Theme.of(context).textTheme.labelLarge
                 ?.copyWith(color: const Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 8),
+          const Row(
+            children: [
+              Icon(
+                Icons.check_circle_rounded,
+                color: Color(0xFF15803D),
+                size: 18,
+              ),
+              SizedBox(width: 7),
+              Text(
+                'Özet başarıyla oluşturuldu',
+                style: TextStyle(
+                  color: Color(0xFF15803D),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           SelectableText(

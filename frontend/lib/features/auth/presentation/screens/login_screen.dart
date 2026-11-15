@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../chat/presentation/screens/chat_screen.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../home/presentation/screens/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => const ChatScreen()),
+      MaterialPageRoute<void>(builder: (_) => const HomeScreen()),
     );
   }
 
