@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/quiz.dart';
 import '../../domain/entities/quiz_submission_result.dart';
 import 'notes_screen.dart';
@@ -11,9 +10,10 @@ class QuizResultScreen extends StatelessWidget {
   final Quiz quiz;
   final QuizSubmissionResult result;
 
-  int get _incorrectCount => (result.totalQuestions - result.correctCount)
-      .clamp(0, result.totalQuestions)
-      .toInt();
+  int get _incorrectCount =>
+      (result.wrongCount ?? result.totalQuestions - result.correctCount)
+          .clamp(0, result.totalQuestions)
+          .toInt();
 
   String _formatScore(double score) {
     final rounded = score.roundToDouble();
@@ -39,6 +39,10 @@ class QuizResultScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
               children: [
                 _buildSummaryCard(context),
+                if (result.feedback.trim().isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _AiStudySuggestionCard(feedback: result.feedback.trim()),
+                ],
                 const SizedBox(height: 12),
                 const _SuccessNotice(),
                 const SizedBox(height: 22),
@@ -90,18 +94,15 @@ class QuizResultScreen extends StatelessWidget {
   }
 
   Widget _buildSummaryCard(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: colors.primary,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primary.withValues(alpha: 0.18),
+            color: colors.primary.withValues(alpha: 0.18),
             blurRadius: 22,
             offset: const Offset(0, 10),
           ),
@@ -111,26 +112,26 @@ class QuizResultScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            quiz.title,
-            style: const TextStyle(
-              color: Colors.white70,
+            result.title.isEmpty ? quiz.title : result.title,
+            style: TextStyle(
+              color: colors.onPrimary,
               fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             '%${_formatScore(result.scorePercent)}',
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: colors.onPrimary,
               fontSize: 38,
               height: 1.1,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 5),
-          const Text(
+          Text(
             'Başarı yüzdesi',
-            style: TextStyle(color: Colors.white70, fontSize: 13),
+            style: TextStyle(color: colors.onPrimary, fontSize: 13),
           ),
           const SizedBox(height: 20),
           Wrap(
@@ -140,22 +141,71 @@ class QuizResultScreen extends StatelessWidget {
               _SummaryBadge(
                 label: 'Doğru',
                 value: '${result.correctCount}',
-                color: const Color(0xFFDCFCE7),
-                foreground: const Color(0xFF166534),
+                color: colors.primaryContainer,
+                foreground: colors.onPrimaryContainer,
               ),
               _SummaryBadge(
                 label: 'Yanlış',
                 value: '$_incorrectCount',
-                color: const Color(0xFFFEE2E2),
-                foreground: const Color(0xFF991B1B),
+                color: colors.errorContainer,
+                foreground: colors.onErrorContainer,
               ),
               _SummaryBadge(
                 label: 'Toplam soru',
                 value: '${result.totalQuestions}',
-                color: Colors.white.withValues(alpha: 0.16),
-                foreground: Colors.white,
+                color: colors.surface,
+                foreground: colors.onSurface,
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AiStudySuggestionCard extends StatelessWidget {
+  const _AiStudySuggestionCard({required this.feedback});
+
+  final String feedback;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.secondaryContainer,
+        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.auto_awesome_rounded,
+                color: colors.onSecondaryContainer,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'AI Öğretim Asistanı Çalışma Önerisi',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: colors.onSecondaryContainer,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            feedback,
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: colors.onSecondaryContainer, height: 1.45),
           ),
         ],
       ),
@@ -168,18 +218,24 @@ class _SuccessNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0FDF4),
-        border: Border.all(color: const Color(0xFFBBF7D0)),
+        color: colors.primaryContainer,
+        border: Border.all(color: colors.primary),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.check_circle_rounded, color: Color(0xFF15803D)),
-          SizedBox(width: 9),
-          Expanded(child: Text('Test başarıyla değerlendirildi.')),
+          Icon(Icons.check_circle_rounded, color: colors.onPrimaryContainer),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              'Test başarıyla değerlendirildi.',
+              style: TextStyle(color: colors.onPrimaryContainer),
+            ),
+          ),
         ],
       ),
     );
@@ -265,6 +321,7 @@ class _QuestionAnalysisCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final options = result.options.isNotEmpty
         ? result.options
         : fallbackQuestion?.options ?? const <String>[];
@@ -278,12 +335,12 @@ class _QuestionAnalysisCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppTheme.border),
+        color: colors.surface,
+        border: Border.all(color: colors.outlineVariant),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.035),
+            color: colors.onSurface.withValues(alpha: 0.035),
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),
@@ -342,16 +399,18 @@ class _QuestionAnalysisCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0F9FF),
-              border: Border.all(color: const Color(0xFFBAE6FD)),
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
               borderRadius: BorderRadius.circular(13),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
+                Icon(
                   Icons.lightbulb_outline_rounded,
-                  color: Color(0xFF0284C7),
+                  color: Theme.of(context).colorScheme.onSecondaryContainer,
                   size: 19,
                 ),
                 const SizedBox(width: 9),
@@ -360,8 +419,8 @@ class _QuestionAnalysisCard extends StatelessWidget {
                     result.explanation.isEmpty
                         ? 'Doğru cevap: ${result.correctAnswer.isEmpty ? "Sunucuda belirtilmedi" : result.correctAnswer}'
                         : result.explanation,
-                    style: const TextStyle(
-                      color: Color(0xFF334155),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSecondaryContainer,
                       height: 1.45,
                     ),
                   ),
@@ -413,17 +472,23 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isCorrect ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+    final colors = Theme.of(context).colorScheme;
+    final foreground = isCorrect
+        ? colors.onPrimaryContainer
+        : colors.onErrorContainer;
+    final background = isCorrect
+        ? colors.primaryContainer
+        : colors.errorContainer;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: background,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         isCorrect ? 'Doğru' : 'Yanlış',
         style: TextStyle(
-          color: color,
+          color: foreground,
           fontWeight: FontWeight.w700,
           fontSize: 12,
         ),
@@ -451,20 +516,19 @@ class _OptionReview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final isGreen = correctSelection || (correctAnswer && !wrongSelection);
     final background = isGreen
-        ? const Color(0xFFF0FDF4)
+        ? colors.primaryContainer
         : wrongSelection
-        ? const Color(0xFFFEF2F2)
-        : const Color(0xFFF8FAFC);
+        ? colors.errorContainer
+        : colors.surfaceContainerLow;
     final border = isGreen
-        ? const Color(0xFF86EFAC)
+        ? colors.primary
         : wrongSelection
-        ? const Color(0xFFFCA5A5)
-        : AppTheme.border;
-    final iconColor = isGreen
-        ? const Color(0xFF16A34A)
-        : const Color(0xFFDC2626);
+        ? colors.error
+        : colors.outlineVariant;
+    final iconColor = isGreen ? colors.primary : colors.error;
 
     return Container(
       width: double.infinity,
@@ -482,7 +546,7 @@ class _OptionReview extends StatelessWidget {
                 ? (isGreen ? Icons.check_circle_rounded : Icons.cancel_rounded)
                 : Icons.radio_button_unchecked_rounded,
             size: 19,
-            color: highlighted ? iconColor : const Color(0xFF94A3B8),
+            color: highlighted ? iconColor : colors.onSurfaceVariant,
           ),
           const SizedBox(width: 9),
           Expanded(
@@ -493,8 +557,10 @@ class _OptionReview extends StatelessWidget {
                   text,
                   style: TextStyle(
                     color: highlighted
-                        ? const Color(0xFF1E293B)
-                        : const Color(0xFF475569),
+                        ? (isGreen
+                              ? colors.onPrimaryContainer
+                              : colors.onErrorContainer)
+                        : colors.onSurface,
                     fontWeight: highlighted
                         ? FontWeight.w600
                         : FontWeight.normal,
@@ -512,8 +578,8 @@ class _OptionReview extends StatelessWidget {
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: isGreen
-                          ? const Color(0xFF15803D)
-                          : const Color(0xFFB91C1C),
+                          ? colors.onPrimaryContainer
+                          : colors.onErrorContainer,
                     ),
                   ),
                 ],

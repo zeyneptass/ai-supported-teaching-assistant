@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/quiz.dart';
 import '../viewmodels/notes_view_model.dart';
 import 'quiz_result_screen.dart';
@@ -66,8 +65,9 @@ class _QuizScreenState extends State<QuizScreen> {
               widget.quiz.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall
-                  ?.copyWith(color: const Color(0xFF64748B)),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -118,9 +118,11 @@ class _QuizScreenState extends State<QuizScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF2F2),
+                  color: Theme.of(context).colorScheme.errorContainer,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFECACA)),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -133,7 +135,7 @@ class _QuizScreenState extends State<QuizScreen> {
                       child: Text(
                         viewModel.errorMessage!,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
+                          color: Theme.of(context).colorScheme.onErrorContainer,
                         ),
                       ),
                     ),
@@ -191,12 +193,13 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Widget _buildProgress(BuildContext context, int answeredCount) {
     final total = widget.quiz.questions.length;
+    final colors = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: colors.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,7 +215,7 @@ class _QuizScreenState extends State<QuizScreen> {
               Text(
                 '$answeredCount / $total',
                 style: Theme.of(context).textTheme.labelLarge
-                    ?.copyWith(color: AppTheme.primary),
+                    ?.copyWith(color: colors.primary),
               ),
             ],
           ),
@@ -222,7 +225,7 @@ class _QuizScreenState extends State<QuizScreen> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelSmall
-                ?.copyWith(color: const Color(0xFF64748B)),
+                ?.copyWith(color: colors.onSurfaceVariant),
           ),
           const SizedBox(height: 10),
           LinearProgressIndicator(
@@ -238,17 +241,18 @@ class _QuizScreenState extends State<QuizScreen> {
     NotesViewModel viewModel,
     int index,
   ) {
+    final colors = Theme.of(context).colorScheme;
     final question = widget.quiz.questions[index];
     final selected = viewModel.quizAnswers[question.id];
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: colors.outlineVariant),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.035),
+            color: colors.onSurface.withValues(alpha: 0.035),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -259,10 +263,8 @@ class _QuizScreenState extends State<QuizScreen> {
         children: [
           Text(
             'Soru ${index + 1} / ${widget.quiz.questions.length}',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: AppTheme.primary,
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(context).textTheme.labelMedium
+                ?.copyWith(color: colors.primary, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
           Text(
@@ -296,10 +298,12 @@ class _QuizScreenState extends State<QuizScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? AppTheme.primary.withValues(alpha: 0.06)
-                          : const Color(0xFFF8FAFC),
+                          ? colors.primaryContainer
+                          : colors.surfaceContainerLow,
                       border: Border.all(
-                        color: isSelected ? AppTheme.primary : AppTheme.border,
+                        color: isSelected
+                            ? colors.primary
+                            : colors.outlineVariant,
                       ),
                       borderRadius: BorderRadius.circular(13),
                     ),
@@ -311,8 +315,8 @@ class _QuizScreenState extends State<QuizScreen> {
                               : Icons.radio_button_unchecked_rounded,
                           size: 20,
                           color: isSelected
-                              ? AppTheme.primary
-                              : const Color(0xFF94A3B8),
+                              ? colors.onPrimaryContainer
+                              : colors.onSurfaceVariant,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -320,8 +324,8 @@ class _QuizScreenState extends State<QuizScreen> {
                             option,
                             style: TextStyle(
                               color: isSelected
-                                  ? AppTheme.primary
-                                  : const Color(0xFF334155),
+                                  ? colors.onPrimaryContainer
+                                  : colors.onSurface,
                               fontWeight: isSelected
                                   ? FontWeight.w600
                                   : FontWeight.normal,

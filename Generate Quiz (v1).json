@@ -35,7 +35,8 @@
         },
         "options": {
           "temperature": 0.2,
-          "num_predict": 550,
+          "num_predict": 2000,
+          "num_ctx": 4096,
           "format": "json"
         }
       },
@@ -59,7 +60,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const rawInput = $input.first().json;\nconst webhookBody = $('Webhook Generate Quiz').first().json.body || {};\n\n// Ollama yanıtını kök dizindeki \"content\" dahil tüm olası alanlardan al\nlet rawText =\n  rawInput?.content ||\n  rawInput?.message?.content ||\n  rawInput?.output ||\n  rawInput?.text ||\n  rawInput?.response ||\n  (typeof rawInput === 'string' ? rawInput : JSON.stringify(rawInput));\n\n// Eğer rawText hala obje ise string'e çevir\nif (typeof rawText === 'object') {\n  rawText = JSON.stringify(rawText);\n}\n\n// Markdown kod bloklarını temizle ve ilk { ile son } arasını al\nrawText = String(rawText).replace(/```json/gi, '').replace(/```/g, '').trim();\nconst firstBrace = rawText.indexOf('{');\nconst lastBrace = rawText.lastIndexOf('}');\nif (firstBrace !== -1 && lastBrace !== -1) {\n  rawText = rawText.slice(firstBrace, lastBrace + 1);\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(rawText);\n  // Eğer iç içe string olarak sarılmışsa bir kez daha parse et\n  if (typeof parsed?.content === 'string') {\n    parsed = JSON.parse(parsed.content);\n  }\n} catch (err) {\n  throw new Error(`JSON_PARSE_ERROR: Model gecerli JSON uretmedi. Ham cikti: ${rawText.slice(0, 200)}`);\n}"
+        "jsCode": "const rawInput = $input.first().json;\nconst webhookBody = $('Webhook Generate Quiz').first().json.body || {};\n\n// Ollama yanıtını tüm olası alanlardan al\nlet rawText =\n  rawInput?.content ||\n  rawInput?.message?.content ||\n  rawInput?.output ||\n  rawInput?.text ||\n  rawInput?.response ||\n  (typeof rawInput === 'string' ? rawInput : JSON.stringify(rawInput));\n\nif (typeof rawText === 'object') {\n  rawText = JSON.stringify(rawText);\n}\n\n// Markdown kod bloklarını ve kontrol karakterlerini temizle\nrawText = String(rawText)\n  .replace(/```json/gi, '')\n  .replace(/```/g, '')\n  .replace(/[\\u0000-\\u0019]+/g, ' ')\n  .trim();\n\nconst firstBrace = rawText.indexOf('{');\nconst firstBracket = rawText.indexOf('[');\nconst startIdx =\n  firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)\n    ? firstBrace\n    : firstBracket;\n\nif (startIdx !== -1) {\n  rawText = rawText.slice(startIdx);\n}\n\nfunction safeParse(text) {\n  try {\n    return JSON.parse(text);\n  } catch (e) {\n    // Kesilmiş JSON: sondan geriye doğru tamamlanmış son soru nesnesini bul\n    for (let pos = text.lastIndexOf('}'); pos > 0; pos = text.lastIndexOf('}', pos - 1)) {\n      const slice = text.slice(0, pos + 1);\n      for (const suffix of [']}', ']']) {\n        try {\n          return JSON.parse(slice + suffix);\n        } catch (_) {}\n      }\n    }\n    return null;\n  }\n}\n\nlet parsed = safeParse(rawText);\nif (typeof parsed?.content === 'string') {\n  parsed = safeParse(parsed.content) || parsed;\n}\nif (!parsed) {\n  throw new Error(`JSON_PARSE_ERROR: Model gecerli JSON uretmedi. Ham cikti: ${rawText.slice(0, 200)}`);\n}\n\n// Sorular dizisini bul\nconst rawQuestions = Array.isArray(parsed)\n  ? parsed\n  : Array.isArray(parsed?.questions)\n    ? parsed.questions\n    : [];\n\nif (rawQuestions.length < 3) {\n  throw new Error(`SCHEMA_ERROR: Yetersiz soru sayisi (${rawQuestions.length}).`);\n}\n\n// Her soruyu doğrula ve normalize et\nconst validatedQuestions = rawQuestions.map((q, index) => {\n  const questionText = String(q?.question || '').trim();\n  const options = Array.isArray(q?.options)\n    ? q.options.map((opt) => String(opt).trim()).filter(Boolean)\n    : [];\n  let correctAnswer = String(q?.correct_answer || '').trim();\n\n  if (!questionText || options.length < 4) {\n    throw new Error(`SCHEMA_ERROR: Soru ${index + 1} eksik veya 4 secenegi yok.`);\n  }\n\n  // Model sadece \"A\" gibi harf döndürdüyse ilgili şık metniyle eşle\n  if (!options.includes(correctAnswer)) {\n    const matched = options.find(\n      (opt) =>\n        opt.toUpperCase().startsWith(correctAnswer.toUpperCase() + ':') ||\n        opt.toUpperCase().startsWith(correctAnswer.toUpperCase() + ')')\n    );\n    correctAnswer = matched || options[0];\n  }\n\n  return {\n    id: index + 1,\n    question: questionText,\n    options: options.slice(0, 4),\n    correct_answer: correctAnswer\n  };\n});\n\nreturn [\n  {\n    json: {\n      source_id: webhookBody.source_id || null,\n      title: webhookBody.title || 'Ders Testi',\n      questions: validatedQuestions,\n      created_at: new Date().toISOString()\n    }\n  }\n];"
       },
       "id": "4e13ba94-9263-4774-bde9-9620f067735a",
       "name": "Validate Quiz Schema",
@@ -184,7 +185,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "54e3082f-45fe-4ef7-89b2-5543ee404c2c",
+  "versionId": "000a7951-c811-4892-ad41-d18affb3e8eb",
   "meta": {
     "instanceId": "1088ad103aedc6e90beea111fa18dbbe4df66cfe5dbf499ea68ca10a2c664a6c"
   },

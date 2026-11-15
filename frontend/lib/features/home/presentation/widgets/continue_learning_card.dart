@@ -14,20 +14,17 @@ class ContinueLearningCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final result = lesson.latestResult;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(19),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: colors.primaryContainer,
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1E3A8A).withValues(alpha: 0.18),
+            color: colors.primary.withValues(alpha: 0.14),
             blurRadius: 22,
             offset: const Offset(0, 9),
           ),
@@ -36,14 +33,17 @@ class ContinueLearningCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.play_circle_fill_rounded, color: Colors.white),
+              Icon(
+                Icons.play_circle_fill_rounded,
+                color: colors.onPrimaryContainer,
+              ),
               SizedBox(width: 8),
               Text(
                 'DEVAM ET',
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: colors.onPrimaryContainer,
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.7,
@@ -56,8 +56,10 @@ class ContinueLearningCard extends StatelessWidget {
             lesson.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleLarge
-                ?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: colors.onPrimaryContainer,
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 5),
           Text(
@@ -68,7 +70,7 @@ class ContinueLearningCard extends StatelessWidget {
                 : 'Son test skorun: %${_formatScore(result.scorePercent)}',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white70, height: 1.4),
+            style: TextStyle(color: colors.onPrimaryContainer, height: 1.4),
           ),
           const SizedBox(height: 15),
           FilledButton.icon(
@@ -82,8 +84,8 @@ class ContinueLearningCard extends StatelessWidget {
                   : 'Testi Tekrar Çöz',
             ),
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF1E3A8A),
+              backgroundColor: colors.surface,
+              foregroundColor: colors.primary,
               minimumSize: const Size(0, 42),
               padding: const EdgeInsets.symmetric(horizontal: 15),
             ),

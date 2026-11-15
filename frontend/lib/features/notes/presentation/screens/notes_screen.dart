@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/lesson_summary.dart';
 import '../../domain/entities/saved_lesson.dart';
 import '../viewmodels/notes_view_model.dart';
@@ -251,17 +250,18 @@ class _NotesScreenState extends State<NotesScreen> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.description_outlined,
                       size: 17,
-                      color: AppTheme.accent,
+                      color: Theme.of(context).colorScheme.secondary,
                     ),
                     const SizedBox(width: 7),
                     Expanded(
                       child: Text(
                         _selectedFileName!,
-                        style: Theme.of(context).textTheme.bodySmall
-                            ?.copyWith(color: const Color(0xFF475569)),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -290,8 +290,10 @@ class _NotesScreenState extends State<NotesScreen> {
                       label: const Text('Test Oluştur'),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(52),
-                        foregroundColor: AppTheme.primary,
-                        side: const BorderSide(color: AppTheme.primary),
+                        foregroundColor: Theme.of(context).colorScheme.primary,
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -314,8 +316,9 @@ class _NotesScreenState extends State<NotesScreen> {
                       child: Text(
                         viewModel.statusMessage ?? 'İşleminiz sürüyor...',
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall
-                            ?.copyWith(color: const Color(0xFF64748B)),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ],
@@ -337,10 +340,11 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   Widget _buildIntro(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppTheme.primary.withValues(alpha: 0.06),
+        color: colors.primaryContainer,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -349,13 +353,10 @@ class _NotesScreenState extends State<NotesScreen> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colors.surface,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(
-              Icons.lightbulb_outline_rounded,
-              color: AppTheme.primary,
-            ),
+            child: Icon(Icons.lightbulb_outline_rounded, color: colors.primary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -363,7 +364,7 @@ class _NotesScreenState extends State<NotesScreen> {
               'Notlarınızı yapay zeka ile özetleyin veya kişisel bir test '
               'hazırlayın.',
               style: Theme.of(context).textTheme.bodyMedium
-                  ?.copyWith(color: const Color(0xFF334155), height: 1.4),
+                  ?.copyWith(color: colors.onPrimaryContainer, height: 1.4),
             ),
           ),
         ],
@@ -372,21 +373,22 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   Widget _buildError(String message) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
+        color: colors.errorContainer,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFFECACA)),
+        border: Border.all(color: colors.error),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626)),
+          Icon(Icons.error_outline_rounded, color: colors.onErrorContainer),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(color: Color(0xFF991B1B)),
+              style: TextStyle(color: colors.onErrorContainer),
             ),
           ),
           const SizedBox(width: 8),
@@ -404,15 +406,16 @@ class _NotesScreenState extends State<NotesScreen> {
     NotesViewModel viewModel,
     LessonSummary summary,
   ) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: colors.outlineVariant),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.045),
+            color: colors.onSurface.withValues(alpha: 0.045),
             blurRadius: 18,
             offset: const Offset(0, 6),
           ),
@@ -423,9 +426,9 @@ class _NotesScreenState extends State<NotesScreen> {
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.auto_awesome_rounded,
-                color: AppTheme.accent,
+                color: colors.secondary,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -457,21 +460,17 @@ class _NotesScreenState extends State<NotesScreen> {
           Text(
             summary.title,
             style: Theme.of(context).textTheme.labelLarge
-                ?.copyWith(color: const Color(0xFF64748B)),
+                ?.copyWith(color: colors.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
-          const Row(
+          Row(
             children: [
-              Icon(
-                Icons.check_circle_rounded,
-                color: Color(0xFF15803D),
-                size: 18,
-              ),
-              SizedBox(width: 7),
+              Icon(Icons.check_circle_rounded, color: colors.primary, size: 18),
+              const SizedBox(width: 7),
               Text(
                 'Özet başarıyla oluşturuldu',
                 style: TextStyle(
-                  color: Color(0xFF15803D),
+                  color: colors.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),

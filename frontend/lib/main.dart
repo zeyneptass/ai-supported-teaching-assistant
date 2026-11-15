@@ -60,7 +60,7 @@ class MyApp extends StatelessWidget {
         title: 'AI Destekli Öğretim Asistanı',
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
-        themeMode: ThemeMode.system,
+        themeMode: ThemeMode.light,
         home: const HomeScreen(),
       ),
     );

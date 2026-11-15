@@ -1,0 +1,237 @@
+{
+  "name": "Evaluate Quiz (v1)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "evaluate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "abe24c25-cc38-42e2-bff4-27b9d5df7c71",
+      "name": "Webhook Evaluate Quiz",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        -112
+      ],
+      "webhookId": "evaluate-quiz-v1"
+    },
+    {
+      "parameters": {
+        "collection": "quizzes",
+        "options": {},
+        "query": "={ \"_id\": \"{{ $json.body.quiz_id }}\" }"
+      },
+      "id": "dae59ab0-d582-4a0f-b07c-e3dbc397c791",
+      "name": "Get Quiz By ID",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        -432,
+        -112
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "rEX3jElleMrcE9M7",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhookBody = $('Webhook Evaluate Quiz').first().json.body || {};\nconst quizDoc = $input.first().json;\n\nif (!quizDoc || !Array.isArray(quizDoc.questions)) {\n  throw new Error('QUIZ_NOT_FOUND: Belirtilen quiz_id veritabaninda bulunamadi.');\n}\n\nconst userAnswers = webhookBody.answers || {};\nconst questions = quizDoc.questions;\n\nlet correctCount = 0;\nconst details = [];\nconst wrongQuestions = [];\n\nquestions.forEach((q) => {\n  const qId = String(q.id);\n  const userAnswer = String(userAnswers[qId] || '').trim();\n  const correctAnswer = String(q.correct_answer || '').trim();\n  const isCorrect = userAnswer === correctAnswer;\n\n  if (isCorrect) {\n    correctCount++;\n  } else {\n    wrongQuestions.push({\n      question: q.question,\n      user_answer: userAnswer || 'Boş bırakıldı',\n      correct_answer: correctAnswer\n    });\n  }\n\n  details.push({\n    question_id: q.id,\n    question: q.question,\n    user_answer: userAnswer,\n    correct_answer: correctAnswer,\n    is_correct: isCorrect\n  });\n});\n\nconst totalQuestions = questions.length;\nconst score = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;\n\nreturn [\n  {\n    json: {\n      quiz_id: webhookBody.quiz_id,\n      title: quizDoc.title || 'Ders Testi',\n      total_questions: totalQuestions,\n      correct_count: correctCount,\n      wrong_count: totalQuestions - correctCount,\n      score,\n      details,\n      wrong_questions: wrongQuestions,\n      created_at: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "id": "6d34e163-51f5-4a36-abc9-4ba3cb8273fb",
+      "name": "Calculate Score & Wrong Topics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Öğrencinin test sonucu: {{ $json.score }}/100 ({{ $json.correct_count }} doğru, {{ $json.wrong_count }} yanlış).\nYanlış yapılan sorular: {{ JSON.stringify($json.wrong_questions) }}\n\nLütfen öğrencinin yanlış yaptığı sorulara ve eksik olduğu konulara göre kısa, motive edici ve nokta atışı Türkçe çalışma tavsiyesi ver. Eğer hiç yanlışı yoksa tebrik et."
+      },
+      "id": "7dc98a51-8513-4261-91ef-3a9d6b35aa38",
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        16,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "model": "qwen2.5:3b",
+        "options": {
+          "temperature": 0.4,
+          "numCtx": 2048,
+          "numPredict": 300
+        }
+      },
+      "id": "ab9ffc88-0cda-4c01-999a-742439ef7605",
+      "name": "Ollama Study Advice",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        16,
+        112
+      ],
+      "credentials": {
+        "ollamaApi": {
+          "id": "wai1X8C8ZIQVfKDG",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const evalData = $('Calculate Score & Wrong Topics').first().json;\nconst aiRaw = $input.first().json;\n\nconst feedback = String(\n  aiRaw?.text ||\n  aiRaw?.content ||\n  aiRaw?.message?.content ||\n  aiRaw?.output ||\n  aiRaw?.response ||\n  'Konu tekrarını tamamladıktan sonra testi yeniden çözebilirsin.'\n).trim();\n\nreturn [\n  {\n    json: {\n      quiz_id: evalData.quiz_id,\n      title: evalData.title,\n      total_questions: evalData.total_questions,\n      correct_count: evalData.correct_count,\n      wrong_count: evalData.wrong_count,\n      score: evalData.score,\n      details: evalData.details,\n      feedback,\n      created_at: evalData.created_at\n    }\n  }\n];"
+      },
+      "id": "1c04d93e-3da8-4f69-b361-ff9b3e00f87d",
+      "name": "Prepare Attempt Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "quiz_attempts",
+        "fields": "quiz_id, title, total_questions, correct_count, wrong_count, score, details, feedback, created_at",
+        "options": {}
+      },
+      "id": "3aae60fb-f332-4538-91af-fa06dc02d14b",
+      "name": "MongoDB Insert Attempt",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        592,
+        -112
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "rEX3jElleMrcE9M7",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $('Prepare Attempt Payload').first().json }}",
+        "options": {}
+      },
+      "id": "abb78511-ad3a-4ee5-b447-946c1dd30419",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        816,
+        -112
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Evaluate Quiz": {
+      "main": [
+        [
+          {
+            "node": "Get Quiz By ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Quiz By ID": {
+      "main": [
+        [
+          {
+            "node": "Calculate Score & Wrong Topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Score & Wrong Topics": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Study Advice": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Prepare Attempt Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Attempt Payload": {
+      "main": [
+        [
+          {
+            "node": "MongoDB Insert Attempt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB Insert Attempt": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5c2e303f-860d-400b-a985-b3dd8f6223bd",
+  "meta": {
+    "instanceId": "1088ad103aedc6e90beea111fa18dbbe4df66cfe5dbf499ea68ca10a2c664a6c"
+  },
+  "nodeGroups": [],
+  "id": "OpHkKxTaDbgCHqZP",
+  "tags": []
+}

@@ -120,10 +120,10 @@ class _ScoreBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = score >= 70
-        ? const Color(0xFF15803D)
-        : Theme.of(context).colorScheme.error;
+        ? Theme.of(context).colorScheme.onPrimaryContainer
+        : Theme.of(context).colorScheme.onErrorContainer;
     final background = score >= 70
-        ? const Color(0xFFDCFCE7)
+        ? Theme.of(context).colorScheme.primaryContainer
         : Theme.of(context).colorScheme.errorContainer;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),

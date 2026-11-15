@@ -5,6 +5,7 @@ import 'package:frontend/core/constants/api_endpoints.dart';
 import 'package:frontend/core/network/http_service.dart';
 import 'package:frontend/core/network/http_service_impl.dart';
 import 'package:frontend/features/notes/data/datasources/notes_remote_data_source.dart';
+import 'package:frontend/features/notes/data/models/lesson_summary_model.dart';
 import 'package:frontend/features/notes/domain/entities/quiz.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -38,6 +39,45 @@ void main() {
 
     expect(summary.sourceId, 'source-1');
     expect(summary.summary, 'Kısa özet');
+  });
+
+  test(
+    'summarize parses Mongo ObjectId buffer as a hexadecimal source id',
+    () async {
+      final client = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'source_id': {
+              'buffer': {'0': 106, '1': 0, '2': 15, '3': 255},
+            },
+            'title': 'Programlama',
+            'summary': 'Kısa özet',
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+      final dataSource = NotesRemoteDataSourceImpl(
+        HttpServiceImpl(client: client),
+      );
+
+      final summary = await dataSource.summarizeLesson(
+        title: 'Programlama',
+        text: 'Ders notları',
+      );
+
+      expect(summary.sourceId, '6a000fff');
+    },
+  );
+
+  test('uses a non-empty source id fallback for an unusable buffer', () {
+    final summary = LessonSummaryModel.fromJson({
+      'source_id': {'buffer': <String, Object?>{}},
+      'title': 'Programlama',
+      'summary': 'Kısa özet',
+    });
+
+    expect(summary.sourceId, isNotEmpty);
   });
 
   test(

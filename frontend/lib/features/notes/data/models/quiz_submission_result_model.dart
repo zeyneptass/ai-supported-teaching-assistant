@@ -10,6 +10,9 @@ class QuizSubmissionResultModel extends QuizSubmissionResult {
     required super.correctCount,
     required super.scorePercent,
     required super.results,
+    super.title = '',
+    super.wrongCount,
+    super.feedback = '',
   });
 
   factory QuizSubmissionResultModel.fromJson(
@@ -18,34 +21,46 @@ class QuizSubmissionResultModel extends QuizSubmissionResult {
     required Map<int, String> answers,
   }) {
     final json = _normalizePayload(payload);
-    final rawResults = _asList(json['results'] ?? json['questions']);
+    final details = _asList(json['details']);
+    final responseResults = _asList(json['results']);
+    final rawResults = details.isNotEmpty
+        ? details
+        : responseResults.isNotEmpty
+        ? responseResults
+        : _asList(json['questions']);
     final indexedResults = <int, Map<String, dynamic>>{};
     for (var index = 0; index < rawResults.length; index++) {
       final item = _asMap(rawResults[index]);
       if (item == null) continue;
-      final id = _asInt(item['id'] ?? item['question_id'] ?? item['questionId']);
+      final id = _asInt(
+        item['question_id'] ?? item['questionId'] ?? item['id'],
+      );
       if (id != null) indexedResults[id] = item;
     }
 
     final results = <QuestionResult>[];
     for (var index = 0; index < quiz.questions.length; index++) {
       final question = quiz.questions[index];
-      final raw = indexedResults[question.id] ??
-          (index < rawResults.length
-              ? _asMap(rawResults[index])
-              : null) ??
+      final raw =
+          indexedResults[question.id] ??
+          (index < rawResults.length ? _asMap(rawResults[index]) : null) ??
           const <String, dynamic>{};
       final selectedAnswer = _asString(
-        raw['selected_answer'] ?? raw['user_answer'] ?? raw['answer'],
+        raw['user_answer'] ??
+            raw['userAnswer'] ??
+            raw['selected_answer'] ??
+            raw['selectedAnswer'] ??
+            raw['answer'],
         fallback: answers[question.id] ?? '',
       );
-      final correctAnswer = _asString(raw['correct_answer']);
-      final rawIsCorrect = raw['is_correct'] ?? raw['isCorrect'];
-      final isCorrect = _asBool(
-        rawIsCorrect,
-        fallback: correctAnswer.isNotEmpty &&
-            selectedAnswer == correctAnswer,
+      final correctAnswer = _asString(
+        raw['correct_answer'] ?? raw['correctAnswer'],
       );
+      final rawIsCorrect = raw['is_correct'] ?? raw['isCorrect'];
+      final answersMatch =
+          selectedAnswer.trim().isNotEmpty &&
+          selectedAnswer.trim() == correctAnswer.trim();
+      final isCorrect = _asBool(rawIsCorrect) || answersMatch;
       final resolvedCorrectAnswer = correctAnswer.isNotEmpty
           ? correctAnswer
           : isCorrect
@@ -77,21 +92,29 @@ class QuizSubmissionResultModel extends QuizSubmissionResult {
     final parsedTotalQuestions = _asInt(
       json['total_questions'] ?? json['totalQuestions'],
     );
-    final totalQuestions = parsedTotalQuestions == null ||
-            parsedTotalQuestions <= 0
+    final totalQuestions =
+        parsedTotalQuestions == null || parsedTotalQuestions <= 0
         ? quiz.questions.length
         : parsedTotalQuestions;
     final parsedCorrectCount =
         _asInt(json['correct_count'] ?? json['correctCount']) ??
         derivedCorrectCount;
     final correctCount = parsedCorrectCount.clamp(0, totalQuestions).toInt();
-    final rawScore = json['score_percent'] ?? json['score'] ?? json['percentage'];
+    final parsedWrongCount =
+        _asInt(json['wrong_count'] ?? json['wrongCount']) ??
+        totalQuestions - correctCount;
+    final wrongCount = parsedWrongCount.clamp(0, totalQuestions).toInt();
+    final rawScore =
+        json['score_percent'] ?? json['score'] ?? json['percentage'];
     final parsedScore = _asDouble(rawScore);
-    final scorePercent = (parsedScore == null || !parsedScore.isFinite
-            ? (totalQuestions == 0 ? 0 : correctCount * 100 / totalQuestions)
-            : parsedScore)
-        .clamp(0, 100)
-        .toDouble();
+    final scorePercent =
+        (parsedScore == null || !parsedScore.isFinite
+                ? (totalQuestions == 0
+                      ? 0
+                      : correctCount * 100 / totalQuestions)
+                : parsedScore)
+            .clamp(0, 100)
+            .toDouble();
     final quizId = _asString(
       json['quiz_id'] ?? json['quizId'],
       fallback: quiz.quizId,
@@ -99,9 +122,12 @@ class QuizSubmissionResultModel extends QuizSubmissionResult {
 
     return QuizSubmissionResultModel(
       quizId: quizId.isEmpty ? quiz.quizId : quizId,
+      title: _asString(json['title'], fallback: quiz.title),
       totalQuestions: totalQuestions,
       correctCount: correctCount,
+      wrongCount: wrongCount,
       scorePercent: scorePercent,
+      feedback: _asString(json['feedback']),
       results: List<QuestionResult>.unmodifiable(results),
     );
   }

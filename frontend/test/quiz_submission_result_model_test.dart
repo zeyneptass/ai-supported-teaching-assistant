@@ -97,4 +97,106 @@ void main() {
       );
     },
   );
+
+  test('parses n8n evaluation details and summary fields', () {
+    const evaluationQuiz = Quiz(
+      quizId: 'quiz-evaluation',
+      title: 'Quiz title',
+      totalQuestions: 3,
+      questions: [
+        QuizQuestion(id: 1, question: 'Bir?', options: ['A: doğru', 'B']),
+        QuizQuestion(id: 2, question: 'İki?', options: ['A', 'B: doğru']),
+        QuizQuestion(id: 3, question: 'Üç?', options: ['A', 'B: doğru']),
+      ],
+    );
+    final result = QuizSubmissionResultModel.fromJson(
+      {
+        'quiz_id': 'quiz-evaluation',
+        'title': 'Sunucu başlığı',
+        'total_questions': 3,
+        'correct_count': 2,
+        'wrong_count': 1,
+        'score': 67,
+        'feedback': 'İkinci konuya tekrar çalış.',
+        'details': [
+          {
+            'question_id': 1,
+            'question': 'Bir?',
+            'user_answer': ' A: doğru ',
+            'correct_answer': 'A: doğru',
+            'is_correct': false,
+          },
+          {
+            'question_id': 2,
+            'question': 'İki?',
+            'user_answer': 'A',
+            'correct_answer': 'B: doğru',
+            'is_correct': true,
+          },
+          {
+            'question_id': 3,
+            'question': 'Üç?',
+            'user_answer': 'A',
+            'correct_answer': 'B: doğru',
+            'is_correct': false,
+          },
+        ],
+      },
+      quiz: evaluationQuiz,
+      answers: const {1: ' A: doğru ', 2: 'A', 3: 'A'},
+    );
+
+    expect(result.title, 'Sunucu başlığı');
+    expect(result.totalQuestions, 3);
+    expect(result.correctCount, 2);
+    expect(result.wrongCount, 1);
+    expect(result.scorePercent, 67);
+    expect(result.feedback, 'İkinci konuya tekrar çalış.');
+    expect(result.results.map((item) => item.isCorrect), [true, true, false]);
+    expect(result.results.first.selectedAnswer, ' A: doğru ');
+    expect(result.results.first.correctAnswer, 'A: doğru');
+  });
+
+  test('accepts results and questions with camel-case detail fields', () {
+    const evaluationQuiz = Quiz(
+      quizId: 'quiz-aliases',
+      title: 'Aliases',
+      totalQuestions: 1,
+      questions: [
+        QuizQuestion(id: 7, question: 'Soru?', options: ['A', 'B']),
+      ],
+    );
+    final responses = [
+      {
+        'results': [
+          {
+            'id': 7,
+            'userAnswer': ' A ',
+            'correctAnswer': 'A',
+            'isCorrect': false,
+          },
+        ],
+      },
+      {
+        'questions': [
+          {
+            'questionId': 7,
+            'userAnswer': 'A',
+            'correctAnswer': 'B',
+            'isCorrect': true,
+          },
+        ],
+      },
+    ];
+
+    for (final response in responses) {
+      final result = QuizSubmissionResultModel.fromJson(
+        response,
+        quiz: evaluationQuiz,
+        answers: const {7: 'A'},
+      );
+      expect(result.results, hasLength(1));
+      expect(result.results.single.isCorrect, isTrue);
+    }
+  });
 }

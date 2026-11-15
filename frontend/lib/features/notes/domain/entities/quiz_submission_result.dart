@@ -5,12 +5,18 @@ class QuizSubmissionResult {
     required this.correctCount,
     required this.scorePercent,
     required this.results,
+    this.title = '',
+    this.wrongCount,
+    this.feedback = '',
   });
 
   final String quizId;
+  final String title;
   final int totalQuestions;
   final int correctCount;
+  final int? wrongCount;
   final double scorePercent;
+  final String feedback;
   final List<QuestionResult> results;
 }
 
