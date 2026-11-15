@@ -68,4 +68,48 @@ abstract final class AppTheme {
       ),
     );
   }
+
+  static ThemeData get dark {
+    final colorScheme =
+        ColorScheme.fromSeed(
+          seedColor: primary,
+          brightness: Brightness.dark,
+        ).copyWith(
+          primary: const Color(0xFF93C5FD),
+          secondary: const Color(0xFF38BDF8),
+          surface: const Color(0xFF111827),
+          error: const Color(0xFFF87171),
+        );
+
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: const Color(0xFF0B1220),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF0B1220),
+        foregroundColor: Color(0xFFF8FAFC),
+        elevation: 0,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF172033),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF334155)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF334155)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF93C5FD), width: 1.5),
+        ),
+      ),
+    );
+  }
 }

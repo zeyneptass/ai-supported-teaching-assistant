@@ -3,6 +3,14 @@
 Flutter istemcisi, n8n webhook servislerini kullanır. Yerel geliştirmede
 n8n adresi `http://localhost:5678` olarak yapılandırılmıştır.
 
+## Canlı Sonuçlar
+
+Sohbet ekranındaki **Canlı Sonuçlar** kısayolu liglere göre gruplanmış futbol
+ve basketbol karşılaşmalarını açar. Ekran tarih, canlı maç ve takım/lig
+filtrelerini destekler; maç skorları `MockMatchStreamService` üzerinden
+per-match stream ile simüle edilir. Gerçek servis bağlandığında aynı model ve
+viewmodel sözleşmesi kullanılabilir.
+
 ## Ders Notları
 
 Chat ekranındaki **Ders Notları** kısayolu metin girişi veya `.txt` dosyasından

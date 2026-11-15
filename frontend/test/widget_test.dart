@@ -32,5 +32,12 @@ void main() {
 
     expect(find.text('TXT Dosyası Seç'), findsOneWidget);
     expect(find.text('Test Oluştur'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Sohbete dön'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Canlı Sonuçlar'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('Canlı Sonuçlar'), findsOneWidget);
   });
 }

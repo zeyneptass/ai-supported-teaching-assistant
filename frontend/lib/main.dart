@@ -14,6 +14,8 @@ import 'features/notes/domain/usecases/generate_quiz.dart';
 import 'features/notes/domain/usecases/summarize_lesson.dart';
 import 'features/notes/domain/usecases/submit_quiz.dart';
 import 'features/notes/presentation/viewmodels/notes_view_model.dart';
+import 'features/live_score/data/services/mock_match_stream_service.dart';
+import 'features/live_score/presentation/viewmodels/live_score_view_model.dart';
 
 void main() {
   runApp(const MyApp());
@@ -45,10 +47,15 @@ class MyApp extends StatelessWidget {
             );
           },
         ),
+        ChangeNotifierProvider(
+          create: (_) => LiveScoreViewModel(MockMatchStreamService()),
+        ),
       ],
       child: MaterialApp(
         title: 'AI Destekli Öğretim Asistanı',
         theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: ThemeMode.system,
         home: const LoginScreen(),
       ),
     );
