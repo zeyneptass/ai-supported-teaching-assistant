@@ -17,13 +17,41 @@ class NotesViewModel extends ChangeNotifier {
 
   LessonSummary? _summary;
   bool _isLoading = false;
+  bool _isSubmitting = false;
   String? _statusMessage;
   String? _errorMessage;
+  String? _activeQuizId;
+  final Map<int, String> _quizAnswers = {};
 
   LessonSummary? get summary => _summary;
   bool get isLoading => _isLoading;
+  bool get isSubmitting => _isSubmitting;
   String? get statusMessage => _statusMessage;
   String? get errorMessage => _errorMessage;
+  Map<int, String> get quizAnswers => Map.unmodifiable(_quizAnswers);
+
+  void beginQuiz(Quiz quiz) {
+    if (_activeQuizId == quiz.quizId) return;
+    _activeQuizId = quiz.quizId;
+    _quizAnswers.clear();
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  void selectQuizAnswer({
+    required Quiz quiz,
+    required int questionId,
+    required String answer,
+  }) {
+    if (_activeQuizId != quiz.quizId) beginQuiz(quiz);
+    final question = quiz.questions.where((item) => item.id == questionId);
+    if (question.isEmpty || !question.first.options.contains(answer)) return;
+    if (_quizAnswers[questionId] == answer) return;
+
+    _quizAnswers[questionId] = answer;
+    _errorMessage = null;
+    notifyListeners();
+  }
 
   Future<void> summarize({required String title, required String text}) async {
     if (_isLoading) return;
@@ -64,15 +92,22 @@ class NotesViewModel extends ChangeNotifier {
 
   Future<QuizSubmissionResult?> submitQuiz({
     required String quizId,
-    required Map<int, String> answers,
     required Quiz quiz,
   }) async {
-    if (_isLoading) return null;
-    _startLoading('Cevaplarınız kontrol ediliyor...');
+    if (_isLoading || _isSubmitting) return null;
+    if (_activeQuizId != quizId ||
+        quiz.quizId != quizId ||
+        quiz.questions.any((question) => !_quizAnswers.containsKey(question.id))) {
+      _errorMessage = 'Lütfen tüm soruları yanıtlayın.';
+      notifyListeners();
+      return null;
+    }
+
+    _startLoading('Cevaplarınız kontrol ediliyor...', isSubmitting: true);
 
     final result = await _submitQuiz(
       quizId: quizId,
-      answers: answers,
+      answers: Map.unmodifiable(_quizAnswers),
       quiz: quiz,
     );
     switch (result) {
@@ -95,8 +130,9 @@ class NotesViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _startLoading(String status) {
+  void _startLoading(String status, {bool isSubmitting = false}) {
     _isLoading = true;
+    _isSubmitting = isSubmitting;
     _statusMessage = status;
     _errorMessage = null;
     notifyListeners();
@@ -104,6 +140,7 @@ class NotesViewModel extends ChangeNotifier {
 
   void _finishLoading({String? error}) {
     _isLoading = false;
+    _isSubmitting = false;
     _statusMessage = null;
     _errorMessage = error;
     notifyListeners();

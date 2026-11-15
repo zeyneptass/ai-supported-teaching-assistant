@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/constants/api_endpoints.dart';
+import 'package:frontend/core/network/http_service.dart';
 import 'package:frontend/core/network/http_service_impl.dart';
 import 'package:frontend/features/notes/data/datasources/notes_remote_data_source.dart';
 import 'package:frontend/features/notes/domain/entities/quiz.dart';
@@ -57,7 +58,6 @@ void main() {
           jsonEncode({
             'quiz_id': 'quiz-1',
             'title': 'Programlama',
-            'total_questions': 1,
             'questions': [
               {
                 'id': 1,
@@ -83,6 +83,7 @@ void main() {
 
       expect(attempts, 2);
       expect(quiz.quizId, 'quiz-1');
+      expect(quiz.totalQuestions, 1);
       expect(quiz.questions.single.options, ['A', 'B', 'C', 'D']);
     },
   );
@@ -90,7 +91,7 @@ void main() {
   test('submit quiz sends answer text and parses server grading result',
       () async {
     final client = MockClient((request) async {
-      expect(request.url.toString(), ApiEndpoints.submitQuizWebhook);
+      expect(request.url.toString(), ApiEndpoints.evaluateQuizWebhook);
       expect(
         jsonDecode(request.body),
         {
@@ -167,4 +168,55 @@ void main() {
 
     expect(service.timeout.inSeconds, greaterThanOrEqualTo(120));
   });
+
+  test('evaluate request uses a 120-second timeout', () async {
+    final service = _RecordingHttpService({'quiz_id': 'quiz-1'});
+    final dataSource = NotesRemoteDataSourceImpl(service);
+    const quiz = Quiz(
+      quizId: 'quiz-1',
+      title: 'Programlama',
+      totalQuestions: 1,
+      questions: [
+        QuizQuestion(
+          id: 1,
+          question: 'Soru?',
+          options: ['A', 'B', 'C', 'D'],
+        ),
+      ],
+    );
+
+    await dataSource.submitQuiz(
+      quizId: 'quiz-1',
+      answers: const {1: 'A'},
+      quiz: quiz,
+    );
+
+    expect(service.timeout, const Duration(seconds: 120));
+  });
+}
+
+class _RecordingHttpService implements HttpService {
+  _RecordingHttpService(this.response);
+
+  final Map<String, dynamic> response;
+  Duration? timeout;
+
+  @override
+  Future<Map<String, dynamic>> get(
+    String url, {
+    Map<String, String>? headers,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Map<String, dynamic>> post(
+    String url, {
+    Map<String, String>? headers,
+    Object? body,
+    Duration? timeout,
+  }) async {
+    this.timeout = timeout;
+    return response;
+  }
 }

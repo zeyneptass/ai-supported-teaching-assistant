@@ -11,12 +11,12 @@ class QuizModel extends Quiz {
   factory QuizModel.fromJson(Map<String, dynamic> json) {
     final quizId = json['quiz_id'];
     final title = json['title'];
-    final totalQuestions = json['total_questions'];
+    final rawTotalQuestions = json['total_questions'];
     final rawQuestions = json['questions'];
 
     if (quizId is! String ||
         title is! String ||
-        totalQuestions is! int ||
+        (rawTotalQuestions != null && rawTotalQuestions is! int) ||
         rawQuestions is! List) {
       throw const FormatException('Test yanıtı beklenen biçimde değil.');
     }
@@ -49,6 +49,7 @@ class QuizModel extends Quiz {
     }).toList(growable: false);
 
     final questionIds = questions.map((question) => question.id).toSet();
+    final totalQuestions = rawTotalQuestions as int? ?? questions.length;
     if (questions.isEmpty ||
         totalQuestions != questions.length ||
         questionIds.length != questions.length) {

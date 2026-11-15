@@ -16,17 +16,22 @@ class QuizScreen extends StatefulWidget {
 }
 
 class _QuizScreenState extends State<QuizScreen> {
-  final Map<int, String> _answers = {};
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<NotesViewModel>().beginQuiz(widget.quiz);
+    });
+  }
 
-  bool get _isComplete => widget.quiz.questions.every(
-    (question) => _answers.containsKey(question.id),
+  bool _isComplete(NotesViewModel viewModel) => widget.quiz.questions.every(
+    (question) => viewModel.quizAnswers.containsKey(question.id),
   );
 
   Future<void> _completeQuiz(NotesViewModel viewModel) async {
-    if (!_isComplete || viewModel.isLoading) return;
+    if (!_isComplete(viewModel) || viewModel.isLoading) return;
     final result = await viewModel.submitQuiz(
       quizId: widget.quiz.quizId,
-      answers: _answers,
       quiz: widget.quiz,
     );
     if (!mounted || result == null) return;
@@ -40,7 +45,12 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<NotesViewModel>();
+    final answers = viewModel.quizAnswers;
+    final answeredCount = widget.quiz.questions
+        .where((question) => answers.containsKey(question.id))
+        .length;
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,140 +72,57 @@ class _QuizScreenState extends State<QuizScreen> {
       ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
+            child: _buildProgress(context, answeredCount),
+          ),
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(18, 12, 18, 20),
-              itemCount: widget.quiz.questions.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 14),
-              itemBuilder: (context, index) {
-                final question = widget.quiz.questions[index];
-                final selected = _answers[question.id];
-                return Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: AppTheme.border),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF0F172A).withValues(alpha: 0.035),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(18, 4, 18, 20),
+              children: [
+                for (
+                  var index = 0;
+                  index < widget.quiz.questions.length;
+                  index++
+                )
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _buildQuestionCard(context, viewModel, index),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 30,
-                            height: 30,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: AppTheme.primary.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '${index + 1}',
-                              style: const TextStyle(
-                                color: AppTheme.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 11),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                question.question,
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      ...question.options.map((option) {
-                        final isSelected = selected == option;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(13),
-                            onTap:
-                                viewModel.isLoading
-                                    ? null
-                                    : () => setState(() {
-                                        _answers[question.id] = option;
-                                      }),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 13,
-                                vertical: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppTheme.primary.withValues(alpha: 0.06)
-                                    : const Color(0xFFF8FAFC),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? AppTheme.primary
-                                      : AppTheme.border,
-                                ),
-                                borderRadius: BorderRadius.circular(13),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    isSelected
-                                        ? Icons.radio_button_checked_rounded
-                                        : Icons.radio_button_unchecked_rounded,
-                                    size: 20,
-                                    color: isSelected
-                                        ? AppTheme.primary
-                                        : const Color(0xFF94A3B8),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      option,
-                                      style: TextStyle(
-                                        color: isSelected
-                                            ? AppTheme.primary
-                                            : const Color(0xFF334155),
-                                        fontWeight: isSelected
-                                            ? FontWeight.w600
-                                            : FontWeight.normal,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                );
-              },
+              ],
             ),
           ),
           if (viewModel.errorMessage != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
-              child: Text(
-                viewModel.errorMessage!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 4),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFECACA)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline_rounded,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        viewModel.errorMessage!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          if (viewModel.isLoading)
+          if (viewModel.isSubmitting)
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
               child: Column(
@@ -203,7 +130,8 @@ class _QuizScreenState extends State<QuizScreen> {
                   const LinearProgressIndicator(),
                   const SizedBox(height: 8),
                   Text(
-                    viewModel.statusMessage ?? 'Cevaplar kontrol ediliyor...',
+                    viewModel.statusMessage ??
+                        'Cevaplarınız değerlendiriliyor...',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -216,21 +144,169 @@ class _QuizScreenState extends State<QuizScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _isComplete && !viewModel.isLoading
+                  onPressed: _isComplete(viewModel) && !viewModel.isLoading
                       ? () => _completeQuiz(viewModel)
                       : null,
-                  icon: Icon(
-                    Icons.check_rounded,
-                  ),
-                  label: Text(
-                    _isComplete
-                        ? 'Testi Tamamla'
-                        : 'Yanıtlanan: ${_answers.length}/${widget.quiz.questions.length}',
-                  ),
+                  icon: viewModel.isSubmitting
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.check_rounded),
+                  label: const Text('Testi Tamamla ve Değerlendir'),
                 ),
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgress(BuildContext context, int answeredCount) {
+    final total = widget.quiz.questions.length;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Test ilerlemesi',
+                style: Theme.of(context).textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              Text(
+                '$answeredCount / $total',
+                style: Theme.of(context).textTheme.labelLarge
+                    ?.copyWith(color: AppTheme.primary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Test kodu: ${widget.quiz.quizId}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelSmall
+                ?.copyWith(color: const Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 10),
+          LinearProgressIndicator(value: answeredCount / total),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuestionCard(
+    BuildContext context,
+    NotesViewModel viewModel,
+    int index,
+  ) {
+    final question = widget.quiz.questions[index];
+    final selected = viewModel.quizAnswers[question.id];
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.035),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Soru ${index + 1} / ${widget.quiz.questions.length}',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: AppTheme.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            question.question,
+            style: Theme.of(context).textTheme.titleSmall
+                ?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 14),
+          ...question.options.map((option) {
+            final isSelected = selected == option;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Semantics(
+                button: true,
+                selected: isSelected,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(13),
+                  onTap: viewModel.isLoading
+                      ? null
+                      : () => viewModel.selectQuizAnswer(
+                          quiz: widget.quiz,
+                          questionId: question.id,
+                          answer: option,
+                        ),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppTheme.primary.withValues(alpha: 0.06)
+                          : const Color(0xFFF8FAFC),
+                      border: Border.all(
+                        color: isSelected ? AppTheme.primary : AppTheme.border,
+                      ),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isSelected
+                              ? Icons.radio_button_checked_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          size: 20,
+                          color: isSelected
+                              ? AppTheme.primary
+                              : const Color(0xFF94A3B8),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            option,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? AppTheme.primary
+                                  : const Color(0xFF334155),
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
         ],
       ),
     );

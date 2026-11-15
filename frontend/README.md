@@ -11,12 +11,13 @@ ders notlarını içeri aktarmayı sağlar. Metin UTF-8 olarak çözülür. Öze
 Test oluşturma `POST /webhook/generate-quiz` adresine `source_id`, `title` ve
 `text` gönderir; henüz özet üretilmediyse uygulama önce özet endpoint'inden
 `source_id` alır. Test endpoint'i hata verirse istemci bir kez daha dener.
-Her iki istek de mevcut 150 saniyelik HTTP timeout'unu kullanır.
+Özetleme ve test oluşturma istekleri 120 saniyelik HTTP timeout'u kullanır.
 
 Test yanıtları yalnızca soru metni ve seçenekleri içerir. İstemci doğru cevap
-bilgisi beklemez; seçimler test ekranının belleğinde tutulur. Test tamamlandığında
-seçimler `POST /webhook/submit-quiz` adresine `quiz_id` ve soru kimlikleri
-anahtarlı `answers` nesnesi olarak gönderilir. Sunucudan gelen puan, her
+bilgisi beklemez; test seçimleri `NotesViewModel` üzerinde tutulur. Test
+tamamlandığında seçimler `POST /webhook/evaluate` adresine `quiz_id` ve soru
+kimlikleri anahtarlı `answers` nesnesi olarak gönderilir. Değerlendirme isteği
+120 saniyelik timeout kullanır. Sunucudan gelen puan, her
 soruya ait doğru/yanlış durumu, doğru cevap ve açıklama sonuçlarda gösterilir.
 Yanıt biçimi `quiz_id`, `total_questions`, `correct_count`, `score_percent` ve
 `results` dizisindeki `question_id`, `question`, `selected_answer`,

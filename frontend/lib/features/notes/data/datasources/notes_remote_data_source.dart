@@ -80,7 +80,7 @@ class NotesRemoteDataSourceImpl implements NotesRemoteDataSource {
     required Quiz quiz,
   }) async {
     final json = await _httpService.post(
-      ApiEndpoints.submitQuizWebhook,
+      ApiEndpoints.evaluateQuizWebhook,
       body: {
         'quiz_id': quizId,
         'answers': {
@@ -88,6 +88,7 @@ class NotesRemoteDataSourceImpl implements NotesRemoteDataSource {
             entry.key.toString(): entry.value,
         },
       },
+      timeout: const Duration(seconds: 120),
     );
 
     return QuizSubmissionResultModel.fromJson(
