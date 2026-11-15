@@ -53,6 +53,43 @@ void main() {
       find.text('Python listeleri sıfır tabanlı indekslenir.'),
       findsOneWidget,
     );
+    expect(find.text('Test başarıyla değerlendirildi.'), findsOneWidget);
     expect(find.text('Ders Notlarına Dön'), findsOneWidget);
+  });
+
+  testWidgets('shows a helpful empty state when analysis details are absent', (
+    tester,
+  ) async {
+    const quiz = Quiz(
+      quizId: 'quiz-empty-results',
+      title: 'Programlama',
+      totalQuestions: 1,
+      questions: [
+        QuizQuestion(
+          id: 1,
+          question: 'Listeler nasıl indekslenir?',
+          options: ['Sıfırdan', 'Birden'],
+        ),
+      ],
+    );
+    const result = QuizSubmissionResult(
+      quizId: 'quiz-empty-results',
+      totalQuestions: 1,
+      correctCount: 1,
+      scorePercent: 100,
+      results: [],
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: QuizResultScreen(quiz: quiz, result: result),
+      ),
+    );
+
+    expect(find.text('Test başarıyla değerlendirildi.'), findsOneWidget);
+    expect(
+      find.text('Bu test için ayrıntılı çözüm bulunmuyor.'),
+      findsOneWidget,
+    );
   });
 }

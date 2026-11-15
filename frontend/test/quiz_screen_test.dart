@@ -6,11 +6,13 @@ import 'package:frontend/core/errors/exceptions.dart';
 import 'package:frontend/features/notes/domain/entities/lesson_summary.dart';
 import 'package:frontend/features/notes/domain/entities/quiz.dart';
 import 'package:frontend/features/notes/domain/entities/quiz_submission_result.dart';
+import 'package:frontend/features/notes/domain/entities/saved_lesson.dart';
 import 'package:frontend/features/notes/domain/repositories/notes_repository.dart';
 import 'package:frontend/features/notes/presentation/screens/quiz_screen.dart';
 import 'package:frontend/features/notes/presentation/screens/quiz_result_screen.dart';
 import 'package:frontend/features/notes/presentation/viewmodels/notes_view_model.dart';
 import 'package:frontend/features/notes/domain/usecases/generate_quiz.dart';
+import 'package:frontend/features/notes/domain/usecases/get_saved_lessons.dart';
 import 'package:frontend/features/notes/domain/usecases/summarize_lesson.dart';
 import 'package:frontend/features/notes/domain/usecases/submit_quiz.dart';
 import 'package:provider/provider.dart';
@@ -106,10 +108,43 @@ void main() {
 
     expect(viewModel.isSubmitting, isFalse);
     expect(find.text('Bağlantı kesildi.'), findsOneWidget);
+    expect(find.text('Tekrar Dene'), findsOneWidget);
     expect(find.byType(QuizResultScreen), findsNothing);
     expect(
       _buttonFor(tester, find.text('Testi Tamamla ve Değerlendir')).onPressed,
       isNotNull,
+    );
+  });
+
+  testWidgets('shows an empty state for a quiz without questions', (
+    tester,
+  ) async {
+    final repository = _FakeNotesRepository();
+    final viewModel = NotesViewModel(
+      SummarizeLesson(repository),
+      GenerateQuiz(repository),
+      SubmitQuiz(repository),
+      GetSavedLessons(repository),
+    );
+    const emptyQuiz = Quiz(
+      quizId: 'empty-quiz',
+      title: 'Boş Test',
+      totalQuestions: 0,
+      questions: [],
+    );
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: viewModel,
+        child: const MaterialApp(home: QuizScreen(quiz: emptyQuiz)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bu testte henüz soru yok.'), findsOneWidget);
+    expect(
+      _buttonFor(tester, find.text('Testi Tamamla ve Değerlendir')).onPressed,
+      isNull,
     );
   });
 }
@@ -133,6 +168,9 @@ class _FakeNotesRepository implements NotesRepository {
     if (submissionError case final error?) throw error;
     return submissionCompleter?.future ?? _successfulResult;
   }
+
+  @override
+  Future<List<SavedLesson>> getSavedLessons() async => const [];
 
   @override
   Future<Quiz> generateQuiz({
@@ -188,6 +226,7 @@ Future<NotesViewModel> _openQuiz(
     SummarizeLesson(repository),
     GenerateQuiz(repository),
     SubmitQuiz(repository),
+    GetSavedLessons(repository),
   );
   await tester.pumpWidget(
     ChangeNotifierProvider.value(

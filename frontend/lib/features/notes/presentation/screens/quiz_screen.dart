@@ -24,9 +24,11 @@ class _QuizScreenState extends State<QuizScreen> {
     });
   }
 
-  bool _isComplete(NotesViewModel viewModel) => widget.quiz.questions.every(
-    (question) => viewModel.quizAnswers.containsKey(question.id),
-  );
+  bool _isComplete(NotesViewModel viewModel) =>
+      widget.quiz.questions.isNotEmpty &&
+      widget.quiz.questions.every(
+        (question) => viewModel.quizAnswers.containsKey(question.id),
+      );
 
   Future<void> _completeQuiz(NotesViewModel viewModel) async {
     if (!_isComplete(viewModel) || viewModel.isLoading) return;
@@ -77,20 +79,37 @@ class _QuizScreenState extends State<QuizScreen> {
             child: _buildProgress(context, answeredCount),
           ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 4, 18, 20),
-              children: [
-                for (
-                  var index = 0;
-                  index < widget.quiz.questions.length;
-                  index++
-                )
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: _buildQuestionCard(context, viewModel, index),
+            child: widget.quiz.questions.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.quiz_outlined, size: 44),
+                          SizedBox(height: 12),
+                          Text(
+                            'Bu testte henüz soru yok.',
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(18, 4, 18, 20),
+                    children: [
+                      for (
+                        var index = 0;
+                        index < widget.quiz.questions.length;
+                        index++
+                      )
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _buildQuestionCard(context, viewModel, index),
+                        ),
+                    ],
                   ),
-              ],
-            ),
           ),
           if (viewModel.errorMessage != null)
             Padding(
@@ -117,6 +136,13 @@ class _QuizScreenState extends State<QuizScreen> {
                           color: Theme.of(context).colorScheme.error,
                         ),
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: _isComplete(viewModel) && !viewModel.isLoading
+                          ? () => _completeQuiz(viewModel)
+                          : null,
+                      child: const Text('Tekrar Dene'),
                     ),
                   ],
                 ),
@@ -199,7 +225,9 @@ class _QuizScreenState extends State<QuizScreen> {
                 ?.copyWith(color: const Color(0xFF64748B)),
           ),
           const SizedBox(height: 10),
-          LinearProgressIndicator(value: answeredCount / total),
+          LinearProgressIndicator(
+            value: total == 0 ? 0 : answeredCount / total,
+          ),
         ],
       ),
     );

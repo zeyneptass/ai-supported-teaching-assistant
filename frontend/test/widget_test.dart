@@ -1,25 +1,19 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:frontend/main.dart';
 
 void main() {
-  testWidgets('Uygulama LoginScreen ile açılır ve sohbete geçer', (
+  testWidgets('Uygulama HomeScreen ile açılır ve ekranlar arasında gezinir', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MyApp());
 
-    expect(find.text('Giriş Yap'), findsOneWidget);
+    await tester.pumpAndSettle();
 
-    await tester.enterText(
-      find.byKey(const ValueKey('login-email')),
-      'ogrenci@example.com',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('login-password')),
-      'guvenli123',
-    );
-    await tester.tap(find.text('Giriş Yap'));
+    expect(find.text('Merhaba, Zeynep 👋'), findsOneWidget);
+    expect(find.text('Ders notların'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Öğretim Asistanı'));
     await tester.pumpAndSettle();
 
     expect(find.text('Öğretim Asistanı'), findsOneWidget);

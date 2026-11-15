@@ -9,7 +9,7 @@ import 'http_service.dart';
 class HttpServiceImpl implements HttpService {
   HttpServiceImpl({
     http.Client? client,
-    this.timeout = const Duration(seconds: 150),
+    this.timeout = const Duration(seconds: 120),
   }) : _client = client ?? http.Client();
 
   final http.Client _client;
@@ -26,13 +26,8 @@ class HttpServiceImpl implements HttpService {
     Map<String, String>? headers,
   }) async {
     return _handle(
-      () => _client.get(
-        Uri.parse(url),
-        headers: {
-          ..._jsonHeaders,
-          ...?headers,
-        },
-      ),
+      () =>
+          _client.get(Uri.parse(url), headers: {..._jsonHeaders, ...?headers}),
     );
   }
 
@@ -46,10 +41,7 @@ class HttpServiceImpl implements HttpService {
     return _handle(
       () => _client.post(
         Uri.parse(url),
-        headers: {
-          ..._jsonHeaders,
-          ...?headers,
-        },
+        headers: {..._jsonHeaders, ...?headers},
         body: body == null ? null : jsonEncode(body),
       ),
       timeout: timeout,
@@ -64,9 +56,7 @@ class HttpServiceImpl implements HttpService {
     try {
       final response = await request().timeout(requestTimeout);
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw ServerException(
-          'HTTP ${response.statusCode}: ${response.body}',
-        );
+        throw ServerException('HTTP ${response.statusCode}: ${response.body}');
       }
       if (response.body.isEmpty) {
         return {};

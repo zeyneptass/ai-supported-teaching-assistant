@@ -88,85 +88,84 @@ void main() {
     },
   );
 
-  test('submit quiz sends answer text and parses server grading result',
-      () async {
-    final client = MockClient((request) async {
-      expect(request.url.toString(), ApiEndpoints.evaluateQuizWebhook);
-      expect(
-        jsonDecode(request.body),
-        {
+  test(
+    'submit quiz sends answer text and parses server grading result',
+    () async {
+      final client = MockClient((request) async {
+        expect(request.url.toString(), ApiEndpoints.evaluateQuizWebhook);
+        expect(jsonDecode(request.body), {
           'quiz_id': 'quiz-1',
           'answers': {'1': 'Sıfırdan', '2': 'İndeks yoktur'},
-        },
+        });
+        return http.Response(
+          jsonEncode({
+            'quiz_id': 'quiz-1',
+            'total_questions': 2,
+            'correct_count': 1,
+            'score_percent': 50,
+            'results': [
+              {
+                'question_id': 1,
+                'question': 'Birinci soru?',
+                'selected_answer': 'Sıfırdan',
+                'correct_answer': 'Sıfırdan',
+                'is_correct': true,
+                'explanation': 'İlk seçenek doğrudur.',
+              },
+              {
+                'question_id': 2,
+                'question': 'İkinci soru?',
+                'selected_answer': 'İndeks yoktur',
+                'correct_answer': 'Birden',
+                'is_correct': false,
+                'explanation': 'İndeksler sıfırdan başlar.',
+              },
+            ],
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+      final dataSource = NotesRemoteDataSourceImpl(
+        HttpServiceImpl(client: client),
       );
-      return http.Response(
-        jsonEncode({
-          'quiz_id': 'quiz-1',
-          'total_questions': 2,
-          'correct_count': 1,
-          'score_percent': 50,
-          'results': [
-            {
-              'question_id': 1,
-              'question': 'Birinci soru?',
-              'selected_answer': 'Sıfırdan',
-              'correct_answer': 'Sıfırdan',
-              'is_correct': true,
-              'explanation': 'İlk seçenek doğrudur.',
-            },
-            {
-              'question_id': 2,
-              'question': 'İkinci soru?',
-              'selected_answer': 'İndeks yoktur',
-              'correct_answer': 'Birden',
-              'is_correct': false,
-              'explanation': 'İndeksler sıfırdan başlar.',
-            },
-          ],
-        }),
-        200,
-        headers: {'content-type': 'application/json; charset=utf-8'},
+      const quiz = Quiz(
+        quizId: 'quiz-1',
+        title: 'Programlama',
+        totalQuestions: 2,
+        questions: [
+          QuizQuestion(
+            id: 1,
+            question: 'Birinci soru?',
+            options: ['Sıfırdan', 'Birden', 'Rastgele', 'İndeks yoktur'],
+          ),
+          QuizQuestion(
+            id: 2,
+            question: 'İkinci soru?',
+            options: ['Sıfırdan', 'Birden', 'Rastgele', 'İndeks yoktur'],
+          ),
+        ],
       );
-    });
-    final dataSource = NotesRemoteDataSourceImpl(
-      HttpServiceImpl(client: client),
-    );
-    const quiz = Quiz(
-      quizId: 'quiz-1',
-      title: 'Programlama',
-      totalQuestions: 2,
-      questions: [
-        QuizQuestion(
-          id: 1,
-          question: 'Birinci soru?',
-          options: ['Sıfırdan', 'Birden', 'Rastgele', 'İndeks yoktur'],
-        ),
-        QuizQuestion(
-          id: 2,
-          question: 'İkinci soru?',
-          options: ['Sıfırdan', 'Birden', 'Rastgele', 'İndeks yoktur'],
-        ),
-      ],
-    );
 
-    final result = await dataSource.submitQuiz(
-      quizId: 'quiz-1',
-      answers: {1: 'Sıfırdan', 2: 'İndeks yoktur'},
-      quiz: quiz,
-    );
+      final result = await dataSource.submitQuiz(
+        quizId: 'quiz-1',
+        answers: {1: 'Sıfırdan', 2: 'İndeks yoktur'},
+        quiz: quiz,
+      );
 
-    expect(result.correctCount, 1);
-    expect(result.scorePercent, 50);
-    expect(result.results.last.isCorrect, isFalse);
-    expect(result.results.last.explanation, 'İndeksler sıfırdan başlar.');
-  });
+      expect(result.correctCount, 1);
+      expect(result.scorePercent, 50);
+      expect(result.results.last.isCorrect, isFalse);
+      expect(result.results.last.explanation, 'İndeksler sıfırdan başlar.');
+    },
+  );
 
-  test('HTTP service timeout is at least 120 seconds', () {
+  test('HTTP service defaults to a 120-second timeout', () {
     final service = HttpServiceImpl(
       client: MockClient((_) async => http.Response('{}', 200)),
     );
 
-    expect(service.timeout.inSeconds, greaterThanOrEqualTo(120));
+    expect(service.timeout, const Duration(seconds: 120));
   });
 
   test('evaluate request uses a 120-second timeout', () async {
@@ -177,11 +176,7 @@ void main() {
       title: 'Programlama',
       totalQuestions: 1,
       questions: [
-        QuizQuestion(
-          id: 1,
-          question: 'Soru?',
-          options: ['A', 'B', 'C', 'D'],
-        ),
+        QuizQuestion(id: 1, question: 'Soru?', options: ['A', 'B', 'C', 'D']),
       ],
     );
 
@@ -202,10 +197,7 @@ class _RecordingHttpService implements HttpService {
   Duration? timeout;
 
   @override
-  Future<Map<String, dynamic>> get(
-    String url, {
-    Map<String, String>? headers,
-  }) {
+  Future<Map<String, dynamic>> get(String url, {Map<String, String>? headers}) {
     throw UnimplementedError();
   }
 

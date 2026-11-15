@@ -6,19 +6,14 @@ import '../../domain/entities/quiz_submission_result.dart';
 import 'notes_screen.dart';
 
 class QuizResultScreen extends StatelessWidget {
-  const QuizResultScreen({
-    super.key,
-    required this.quiz,
-    required this.result,
-  });
+  const QuizResultScreen({super.key, required this.quiz, required this.result});
 
   final Quiz quiz;
   final QuizSubmissionResult result;
 
-  int get _incorrectCount =>
-      (result.totalQuestions - result.correctCount)
-          .clamp(0, result.totalQuestions)
-          .toInt();
+  int get _incorrectCount => (result.totalQuestions - result.correctCount)
+      .clamp(0, result.totalQuestions)
+      .toInt();
 
   String _formatScore(double score) {
     final rounded = score.roundToDouble();
@@ -29,17 +24,14 @@ class QuizResultScreen extends StatelessWidget {
 
   void _backToNotes(BuildContext context) {
     Navigator.of(context).popUntil(
-      (route) =>
-          route.settings.name == NotesScreen.routeName || route.isFirst,
+      (route) => route.settings.name == NotesScreen.routeName || route.isFirst,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Test Sonuçları ve Çözüm Analizi'),
-      ),
+      appBar: AppBar(title: const Text('Test Sonuçları ve Çözüm Analizi')),
       body: Column(
         children: [
           Expanded(
@@ -47,24 +39,27 @@ class QuizResultScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
               children: [
                 _buildSummaryCard(context),
+                const SizedBox(height: 12),
+                const _SuccessNotice(),
                 const SizedBox(height: 22),
                 Text(
                   'Soru bazlı çözüm',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
+                  style: Theme.of(context).textTheme.titleLarge
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 12),
-                ...result.results.map(
-                  (questionResult) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: _QuestionAnalysisCard(
-                      result: questionResult,
-                      fallbackQuestion: _findQuestion(questionResult.id),
+                if (result.results.isEmpty)
+                  const _EmptyAnalysisState()
+                else
+                  ...result.results.map(
+                    (questionResult) => Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: _QuestionAnalysisCard(
+                        result: questionResult,
+                        fallbackQuestion: _findQuestion(questionResult.id),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -168,6 +163,50 @@ class QuizResultScreen extends StatelessWidget {
   }
 }
 
+class _SuccessNotice extends StatelessWidget {
+  const _SuccessNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        border: Border.all(color: const Color(0xFFBBF7D0)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.check_circle_rounded, color: Color(0xFF15803D)),
+          SizedBox(width: 9),
+          Expanded(child: Text('Test başarıyla değerlendirildi.')),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyAnalysisState extends StatelessWidget {
+  const _EmptyAnalysisState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 28),
+      child: Column(
+        children: [
+          Icon(Icons.description_outlined, size: 40),
+          SizedBox(height: 10),
+          Text(
+            'Bu test için ayrıntılı çözüm bulunmuyor.',
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SummaryBadge extends StatelessWidget {
   const _SummaryBadge({
     required this.label,
@@ -261,9 +300,7 @@ class _QuestionAnalysisCard extends StatelessWidget {
                   result.question.isEmpty
                       ? fallbackQuestion?.question ?? 'Soru ${result.id}'
                       : result.question,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
+                  style: Theme.of(context).textTheme.titleSmall
                       ?.copyWith(fontWeight: FontWeight.w700, height: 1.4),
                 ),
               ),
@@ -275,12 +312,14 @@ class _QuestionAnalysisCard extends StatelessWidget {
           if (visibleOptions.isNotEmpty)
             ...visibleOptions.map((option) {
               final isSelected = option == result.selectedAnswer;
-              final isCorrectAnswer = result.correctAnswer.isNotEmpty &&
+              final isCorrectAnswer =
+                  result.correctAnswer.isNotEmpty &&
                   option == result.correctAnswer;
-              final highlightCorrect = isCorrectAnswer &&
-                  (!result.isCorrect || !isSelected);
+              final highlightCorrect =
+                  isCorrectAnswer && (!result.isCorrect || !isSelected);
               final isWrongSelection = isSelected && !result.isCorrect;
-              final highlighted = (isSelected && result.isCorrect) ||
+              final highlighted =
+                  (isSelected && result.isCorrect) ||
                   highlightCorrect ||
                   isWrongSelection;
 
@@ -344,7 +383,8 @@ class _QuestionAnalysisCard extends StatelessWidget {
               ? 'Yanıt verilmedi'
               : result.selectedAnswer,
           selected: true,
-          correctAnswer: result.correctAnswer == result.selectedAnswer &&
+          correctAnswer:
+              result.correctAnswer == result.selectedAnswer &&
               result.correctAnswer.isNotEmpty,
           correctSelection: result.isCorrect,
           wrongSelection: !result.isCorrect,
@@ -373,9 +413,7 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isCorrect
-        ? const Color(0xFF16A34A)
-        : const Color(0xFFDC2626);
+    final color = isCorrect ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
@@ -457,8 +495,9 @@ class _OptionReview extends StatelessWidget {
                     color: highlighted
                         ? const Color(0xFF1E293B)
                         : const Color(0xFF475569),
-                    fontWeight:
-                        highlighted ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: highlighted
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                 ),
                 if (selected || (correctAnswer && !correctSelection)) ...[
