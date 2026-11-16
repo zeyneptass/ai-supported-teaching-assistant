@@ -29,7 +29,9 @@ void main() {
       );
 
       await viewModel.loadSavedLessons();
-      expect(viewModel.savedLessons, hasLength(2));
+      expect(viewModel.savedLessons.map((lesson) => lesson.title), [
+        'Python Döngüleri',
+      ]);
 
       const sourceText =
           'Dart listeleri sıralı ve değiştirilebilir yapılardır.';

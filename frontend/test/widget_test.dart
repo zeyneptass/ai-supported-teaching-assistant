@@ -12,6 +12,8 @@ void main() {
 
     expect(find.text('Merhaba, Zeynep 👋'), findsOneWidget);
     expect(find.text('Ders notların'), findsOneWidget);
+    expect(find.text('Hücre ve Organeller'), findsNothing);
+    expect(find.byTooltip('Canlı Sonuçlar'), findsNothing);
 
     await tester.tap(find.byTooltip('Öğretim Asistanı'));
     await tester.pumpAndSettle();
@@ -29,9 +31,6 @@ void main() {
 
     await tester.tap(find.byTooltip('Sohbete dön'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Canlı Sonuçlar'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 350));
-    expect(find.text('Canlı Sonuçlar'), findsOneWidget);
+    expect(find.byTooltip('Canlı Sonuçlar'), findsNothing);
   });
 }

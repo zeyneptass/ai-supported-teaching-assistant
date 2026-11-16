@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
-import '../../../live_score/presentation/screens/live_score_screen.dart';
 import '../../../notes/presentation/screens/notes_screen.dart';
 import '../viewmodels/chat_view_model.dart';
 import '../widgets/message_bubble.dart';
@@ -102,17 +101,6 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'Canlı Sonuçlar',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const LiveScoreScreen(),
-                ),
-              );
-            },
-            icon: const Icon(Icons.sports_soccer_rounded),
-          ),
           IconButton(
             tooltip: 'Ders Notları',
             onPressed: () {

@@ -19,14 +19,14 @@ import 'package:frontend/features/notes/presentation/viewmodels/notes_view_model
 import 'package:provider/provider.dart';
 
 const _quiz = Quiz(
-  quizId: 'biology-quiz',
-  title: 'Hücre Testi',
+  quizId: 'dart-quiz',
+  title: 'Dart Testi',
   totalQuestions: 1,
   questions: [
     QuizQuestion(
       id: 1,
-      question: 'Hücrenin enerji santrali hangisidir?',
-      options: ['Mitokondri', 'Ribozom', 'Çekirdek', 'Koful'],
+      question: 'Dart kod blokları hangi karakterlerle çevrelenir?',
+      options: ['Süslü parantezler', 'Köşeli parantezler', 'Tırnaklar', 'Virgüller'],
     ),
   ],
 );
@@ -34,11 +34,11 @@ const _quiz = Quiz(
 final _lessons = [
   SavedLesson(
     summary: const LessonSummary(
-      sourceId: 'biology',
-      title: 'Hücre ve Organeller',
-      summary: 'Hücre ve temel organellerin görevleri.',
+      sourceId: 'dart',
+      title: 'Dart Temelleri',
+      summary: 'Dart dilinin temel sözdizimi.',
     ),
-    sourceText: 'Hücre canlıların temel yapı birimidir.',
+    sourceText: 'Dart kod blokları süslü parantezlerle çevrelenir.',
     updatedAt: DateTime(2026, 11, 14),
     quizHistory: [
       QuizHistoryEntry(
@@ -89,7 +89,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Merhaba, Zeynep 👋'), findsOneWidget);
-    expect(find.text('Hücre ve Organeller'), findsWidgets);
+    expect(find.text('Dart Temelleri'), findsWidgets);
 
     final searchField = find.descendant(
       of: find.byType(SearchBar),
@@ -98,7 +98,7 @@ void main() {
     await tester.enterText(searchField, 'Python');
     await tester.pumpAndSettle();
     expect(find.text('Python Döngüleri'), findsOneWidget);
-    expect(find.text('Hücre ve Organeller'), findsNothing);
+    expect(find.text('Dart Temelleri'), findsNothing);
 
     await tester.enterText(searchField, 'bulunmayacak ders');
     await tester.pumpAndSettle();
@@ -108,7 +108,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Testi Çözülenler'));
     await tester.pumpAndSettle();
-    expect(find.text('Hücre ve Organeller'), findsWidgets);
+    expect(find.text('Dart Temelleri'), findsWidgets);
     expect(find.text('Python Döngüleri'), findsNothing);
     expect(find.text('%100'), findsOneWidget);
   });
@@ -146,15 +146,15 @@ void main() {
     await tester.pumpWidget(_buildHome());
     await tester.pumpAndSettle();
 
-    final cellCard = find.descendant(
+    final dartCard = find.descendant(
       of: find.byType(SavedLessonCard),
-      matching: find.text('Hücre ve Organeller'),
+      matching: find.text('Dart Temelleri'),
     );
-    await tester.tap(cellCard);
+    await tester.tap(dartCard);
     await tester.pumpAndSettle();
 
     expect(find.byType(QuizScreen), findsOneWidget);
-    expect(find.text('Hücre Testi'), findsOneWidget);
+    expect(find.text('Dart Testi'), findsOneWidget);
   });
 
   testWidgets('new lesson action opens NotesScreen', (tester) async {
@@ -286,7 +286,7 @@ class _FakeNotesRepository implements NotesRepository {
     required Map<int, String> answers,
     required Quiz quiz,
   }) async => const QuizSubmissionResult(
-    quizId: 'biology-quiz',
+    quizId: 'dart-quiz',
     totalQuestions: 1,
     correctCount: 1,
     scorePercent: 100,

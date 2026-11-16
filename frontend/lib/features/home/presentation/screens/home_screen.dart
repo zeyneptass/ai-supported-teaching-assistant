@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../chat/presentation/screens/chat_screen.dart';
-import '../../../live_score/presentation/screens/live_score_screen.dart';
 import '../../../notes/domain/entities/saved_lesson.dart';
 import '../../../notes/presentation/screens/notes_screen.dart';
 import '../../../notes/presentation/screens/quiz_screen.dart';
@@ -106,13 +105,6 @@ class _HomeScreenState extends State<HomeScreen> {
               context,
             ).push(MaterialPageRoute<void>(builder: (_) => const ChatScreen())),
             icon: const Icon(Icons.auto_awesome_outlined),
-          ),
-          IconButton(
-            tooltip: 'Canlı Sonuçlar',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const LiveScoreScreen()),
-            ),
-            icon: const Icon(Icons.sports_soccer_rounded),
           ),
         ],
       ),

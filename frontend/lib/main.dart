@@ -15,8 +15,6 @@ import 'features/notes/domain/usecases/get_saved_lessons.dart';
 import 'features/notes/domain/usecases/summarize_lesson.dart';
 import 'features/notes/domain/usecases/submit_quiz.dart';
 import 'features/notes/presentation/viewmodels/notes_view_model.dart';
-import 'features/live_score/data/services/mock_match_stream_service.dart';
-import 'features/live_score/presentation/viewmodels/live_score_view_model.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 
 void main() {
@@ -51,9 +49,6 @@ class MyApp extends StatelessWidget {
               GetSavedLessons(repository),
             );
           },
-        ),
-        ChangeNotifierProvider(
-          create: (_) => LiveScoreViewModel(MockMatchStreamService()),
         ),
       ],
       child: MaterialApp(
