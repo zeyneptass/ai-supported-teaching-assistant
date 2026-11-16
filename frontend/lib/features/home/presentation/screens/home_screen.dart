@@ -58,6 +58,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _openLesson(SavedLesson lesson) {
     final quiz = lesson.latestQuiz;
+    if (quiz != null && lesson.latestResult != null) {
+      context.read<NotesViewModel>().restartQuiz(quiz);
+    }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         settings: quiz == null

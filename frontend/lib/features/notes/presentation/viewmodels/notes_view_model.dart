@@ -56,6 +56,14 @@ class NotesViewModel extends ChangeNotifier {
 
   void beginQuiz(Quiz quiz) {
     if (_activeQuizId == quiz.quizId) return;
+    _startQuiz(quiz);
+  }
+
+  void restartQuiz(Quiz quiz) {
+    _startQuiz(quiz);
+  }
+
+  void _startQuiz(Quiz quiz) {
     _activeQuizId = quiz.quizId;
     _quizAnswers.clear();
     _errorMessage = null;

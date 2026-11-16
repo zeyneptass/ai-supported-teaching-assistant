@@ -26,7 +26,12 @@ const _quiz = Quiz(
     QuizQuestion(
       id: 1,
       question: 'Dart kod blokları hangi karakterlerle çevrelenir?',
-      options: ['Süslü parantezler', 'Köşeli parantezler', 'Tırnaklar', 'Virgüller'],
+      options: [
+        'Süslü parantezler',
+        'Köşeli parantezler',
+        'Tırnaklar',
+        'Virgüller',
+      ],
     ),
   ],
 );
@@ -45,7 +50,7 @@ final _lessons = [
         quiz: _quiz,
         createdAt: DateTime(2026, 11, 14),
         result: const QuizSubmissionResult(
-          quizId: 'biology-quiz',
+          quizId: 'dart-quiz',
           totalQuestions: 1,
           correctCount: 1,
           scorePercent: 100,
@@ -67,17 +72,24 @@ final _lessons = [
   ),
 ];
 
-Widget _buildHome({_FakeNotesRepository? repository}) {
-  repository ??= _FakeNotesRepository();
-  final viewModel = NotesViewModel(
+Widget _buildHome({
+  _FakeNotesRepository? repository,
+  NotesViewModel? viewModel,
+}) {
+  final activeViewModel =
+      viewModel ?? _createNotesViewModel(repository ?? _FakeNotesRepository());
+  return ChangeNotifierProvider.value(
+    value: activeViewModel,
+    child: const MaterialApp(home: HomeScreen()),
+  );
+}
+
+NotesViewModel _createNotesViewModel(NotesRepository repository) {
+  return NotesViewModel(
     SummarizeLesson(repository),
     GenerateQuiz(repository),
     SubmitQuiz(repository),
     GetSavedLessons(repository),
-  );
-  return ChangeNotifierProvider.value(
-    value: viewModel,
-    child: const MaterialApp(home: HomeScreen()),
   );
 }
 
@@ -111,6 +123,39 @@ void main() {
     expect(find.text('Dart Temelleri'), findsWidgets);
     expect(find.text('Python Döngüleri'), findsNothing);
     expect(find.text('%100'), findsOneWidget);
+  });
+
+  testWidgets('completed test card does not show a continue label', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildHome());
+    await tester.pumpAndSettle();
+
+    expect(find.text('DEVAM ET'), findsNothing);
+    expect(find.text('Testi Tekrar Çöz'), findsOneWidget);
+  });
+
+  testWidgets('replaying a completed test clears previous answers', (
+    tester,
+  ) async {
+    final viewModel = _createNotesViewModel(_FakeNotesRepository());
+    viewModel.beginQuiz(_quiz);
+    viewModel.selectQuizAnswer(
+      quiz: _quiz,
+      questionId: 1,
+      answer: 'Süslü parantezler',
+    );
+    expect(viewModel.quizAnswers, {1: 'Süslü parantezler'});
+
+    await tester.pumpWidget(_buildHome(viewModel: viewModel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Testi Tekrar Çöz'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(QuizScreen), findsOneWidget);
+    expect(viewModel.quizAnswers, isEmpty);
+    expect(find.text('0 / 1'), findsOneWidget);
+    expect(find.byIcon(Icons.radio_button_checked_rounded), findsNothing);
   });
 
   testWidgets('a saved lesson without a quiz opens prefilled notes', (

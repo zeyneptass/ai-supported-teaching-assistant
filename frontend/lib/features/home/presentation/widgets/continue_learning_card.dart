@@ -33,25 +33,6 @@ class ContinueLearningCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.play_circle_fill_rounded,
-                color: colors.onPrimaryContainer,
-              ),
-              SizedBox(width: 8),
-              Text(
-                'DEVAM ET',
-                style: TextStyle(
-                  color: colors.onPrimaryContainer,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.7,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
           Text(
             lesson.title,
             maxLines: 1,
