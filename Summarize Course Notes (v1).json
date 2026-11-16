@@ -37,7 +37,7 @@
             {
               "id": "field-summary",
               "name": "=summary",
-              "value": "={{ $json.content }}",
+              "value": "={{ $json.output }}",
               "type": "string"
             },
             {
@@ -83,8 +83,6 @@
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={\n  \"source_id\": \"{{ $json._id || $json.insertedId }}\",\n  \"title\": \"{{ $('Prepare Source Document').item.json.title }}\",\n  \"summary\": {{ JSON.stringify($('Prepare Source Document').item.json.summary) }}\n}",
         "options": {}
       },
       "id": "addef3c9-a6cd-43a3-a8dc-3056e973a5f8",
@@ -98,33 +96,36 @@
     },
     {
       "parameters": {
-        "modelId": {
-          "__rl": true,
-          "value": "qwen2.5:3b",
-          "mode": "list",
-          "cachedResultName": "qwen2.5:3b"
-        },
-        "messages": {
-          "values": [
-            {
-              "content": "=Sen uzman bir üniversite öğretim asistanısın. Aşağıdaki ders notunu analiz et ve öğrencinin sınava hazırlanmasını kolaylaştıracak şekilde açık, akıcı ve tamamen Türkçe olarak özetle.\n\nKurallar:\n1. Önce 2-3 cümlelik genel bir özet paragrafı yaz.\n2. Ardından 'Anahtar Kavramlar ve Önemli Noktalar' başlığı altında en kritik bilgileri madde işaretleriyle (bullet points) listele.\n3. Metinde olmayan hiçbir bilgiyi uydurma, sadece verilen metne sadık kal.\n\nDers Başlığı: {{ $json.body.title || 'Genel Ders Notu' }}\n\nDers Metni:\n{{ $json.body.text }}"
-            }
-          ]
-        },
+        "promptType": "define",
+        "text": "={{ $json.body.text }}",
         "options": {}
       },
-      "type": "@n8n/n8n-nodes-langchain.ollama",
-      "typeVersion": 1,
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
       "position": [
         -96,
         16
       ],
-      "id": "a100a97a-3bb3-4c89-afde-3fa6d47b49f9",
-      "name": "Message a model",
+      "id": "dadfdc6f-d121-48fa-8ceb-06d3b506b824",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        304
+      ],
+      "id": "ea8b559a-e212-422d-907a-50875502de92",
+      "name": "Groq Chat Model",
       "credentials": {
-        "ollamaApi": {
-          "id": "wai1X8C8ZIQVfKDG",
-          "name": "Ollama account"
+        "groqApi": {
+          "id": "RieqitYyTVZuq3LJ",
+          "name": "Groq account 3"
         }
       }
     }
@@ -135,7 +136,7 @@
       "main": [
         [
           {
-            "node": "Message a model",
+            "node": "AI Agent",
             "type": "main",
             "index": 0
           }
@@ -164,12 +165,23 @@
         ]
       ]
     },
-    "Message a model": {
+    "AI Agent": {
       "main": [
         [
           {
             "node": "Prepare Source Document",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
             "index": 0
           }
         ]
@@ -181,7 +193,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "7aa6409f-3e5c-4c46-b2d9-52a8e7e1483a",
+  "versionId": "de2bdeae-b702-4ccf-a67d-d90e5072defe",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "1088ad103aedc6e90beea111fa18dbbe4df66cfe5dbf499ea68ca10a2c664a6c"

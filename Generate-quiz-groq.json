@@ -1,0 +1,206 @@
+{
+  "name": "Generate-quiz-groq",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-quiz",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "35ef063e-ebd5-4386-bb40-04a9eb3010e1",
+      "name": "Webhook Generate Quiz",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -576,
+        -112
+      ],
+      "webhookId": "generate-quiz-webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Aşağıdaki ders notu metninden Türkçe 5 adet çoktan seçmeli soru üret.\n\nMetin:\n{{ $json.body.text }}",
+        "options": {
+          "systemMessage": "Sen bir üniversite öğretim asistanısın. Sana verilen metinden Türkçe 5 kısa çoktan seçmeli soru üret. Her seçenek 2-6 kelimelik kısa açıklama içersin, tek harf yazma. Markdown kod bloğu (```json) veya açıklama metni ekleme; SADECE aşağıdaki geçerli JSON formatını döndür:\n{\"questions\":[{\"question\":\"Kısa soru?\",\"options\":[\"A: Kısa şık 1\",\"B: Kısa şık 2\",\"C: Kısa şık 3\",\"D: Kısa şık 4\"],\"correct_answer\":\"A: Kısa şık 1\"}]}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -304,
+        -112
+      ],
+      "id": "c2302e97-1cc0-49a7-8f43-645b440cc855",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        112
+      ],
+      "id": "c7375b5c-c420-4ffb-951e-5dd4c1097550",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "RieqitYyTVZuq3LJ",
+          "name": "Groq account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawInput = $input.first().json;\nconst webhookBody = $('Webhook Generate Quiz').first().json.body || {};\n\n// AI Agent / Groq yanıtını al\nlet rawText =\n  rawInput?.output ||\n  rawInput?.content ||\n  rawInput?.message?.content ||\n  rawInput?.text ||\n  rawInput?.response ||\n  (typeof rawInput === 'string' ? rawInput : JSON.stringify(rawInput));\n\nif (typeof rawText === 'object') {\n  rawText = JSON.stringify(rawText);\n}\n\n// Markdown kod bloklarını temizle ve ilk { ile son } arasını al\nrawText = String(rawText).replace(/```json/gi, '').replace(/```/g, '').trim();\nconst firstBrace = rawText.indexOf('{');\nconst lastBrace = rawText.lastIndexOf('}');\nif (firstBrace !== -1 && lastBrace !== -1) {\n  rawText = rawText.slice(firstBrace, lastBrace + 1);\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(rawText);\n  if (typeof parsed?.content === 'string') {\n    parsed = JSON.parse(parsed.content);\n  }\n} catch (err) {\n  throw new Error(`JSON_PARSE_ERROR: Model gecerli JSON uretmedi. Ham cikti: ${rawText.slice(0, 200)}`);\n}\n\n// Sorular dizisini bul\nconst rawQuestions = Array.isArray(parsed)\n  ? parsed\n  : Array.isArray(parsed?.questions)\n    ? parsed.questions\n    : [];\n\nif (rawQuestions.length < 3) {\n  throw new Error(`SCHEMA_ERROR: Yetersiz soru sayisi (${rawQuestions.length}).`);\n}\n\n// Her soruyu doğrula ve normalize et\nconst validatedQuestions = rawQuestions.map((q, index) => {\n  const questionText = String(q?.question || '').trim();\n  const options = Array.isArray(q?.options)\n    ? q.options.map((opt) => String(opt).trim()).filter(Boolean)\n    : [];\n  let correctAnswer = String(q?.correct_answer || '').trim();\n\n  if (!questionText || options.length < 4) {\n    throw new Error(`SCHEMA_ERROR: Soru ${index + 1} eksik veya 4 secenegi yok.`);\n  }\n\n  // Eğer model correct_answer olarak sadece harf döndürdüyse ilgili şıkka eşle\n  if (!options.includes(correctAnswer)) {\n    const matched = options.find((opt) =>\n      opt.toUpperCase().startsWith(correctAnswer.toUpperCase() + ':') ||\n      opt.toUpperCase().startsWith(correctAnswer.toUpperCase() + ')')\n    );\n    correctAnswer = matched || options[0];\n  }\n\n  return {\n    id: index + 1,\n    question: questionText,\n    options: options.slice(0, 4),\n    correct_answer: correctAnswer\n  };\n});\n\nreturn [\n  {\n    json: {\n      source_id: webhookBody.source_id || null,\n      title: webhookBody.title || 'Ders Testi',\n      questions: validatedQuestions,\n      created_at: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "id": "d3e5ea6e-ae3b-4619-a425-1e14878ba8e3",
+      "name": "Validate Quiz Schema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "quizzes",
+        "fields": "source_id, title, questions, created_at",
+        "options": {}
+      },
+      "id": "c6b8b3e6-2695-4188-9c72-1005b0eb7da1",
+      "name": "MongoDB Insert Quiz",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        272,
+        -112
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "rEX3jElleMrcE9M7",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const validatedData = $('Validate Quiz Schema').first().json;\nconst mongoResult = $input.first().json;\n\n// MongoDB _id / id buffer nesnesini temiz 24 haneli hex string'e çevir\nconst rawId = mongoResult.id || mongoResult._id || mongoResult.insertedId;\nlet quizId = null;\nif (typeof rawId === 'string') {\n  quizId = rawId;\n} else if (rawId && rawId.buffer) {\n  quizId = Object.values(rawId.buffer)\n    .map((b) => Number(b).toString(16).padStart(2, '0'))\n    .join('');\n}\n\nconst clientQuestions = validatedData.questions.map(q => ({\n  id: q.id,\n  question: q.question,\n  options: q.options\n}));\n\nreturn [\n  {\n    json: {\n      quiz_id: quizId,\n      title: validatedData.title,\n      total_questions: clientQuestions.length,\n      questions: clientQuestions\n    }\n  }\n];"
+      },
+      "id": "758fbab5-8eb2-4f14-bf89-65955311696b",
+      "name": "Hide Correct Answers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "077dc78e-10db-4bf2-9f1f-14242efdc33a",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        -112
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Generate Quiz": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Validate Quiz Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Quiz Schema": {
+      "main": [
+        [
+          {
+            "node": "MongoDB Insert Quiz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB Insert Quiz": {
+      "main": [
+        [
+          {
+            "node": "Hide Correct Answers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hide Correct Answers": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "cfd3f9bf-722f-46f2-805d-6db204cc8876",
+  "meta": {
+    "instanceId": "1088ad103aedc6e90beea111fa18dbbe4df66cfe5dbf499ea68ca10a2c664a6c"
+  },
+  "nodeGroups": [],
+  "id": "OGNkjU8ZSfZYwV2S",
+  "tags": []
+}
