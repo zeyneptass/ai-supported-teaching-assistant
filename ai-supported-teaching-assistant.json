@@ -20,45 +20,46 @@
     },
     {
       "parameters": {
-        "modelId": {
-          "__rl": true,
-          "value": "qwen2.5:3b",
-          "mode": "list",
-          "cachedResultName": "qwen2.5:3b"
-        },
-        "messages": {
-          "values": [
-            {
-              "content": "=Sen yardımcı bir eğitim asistanısın. Tüm sorulara mutlaka Türkçe yanıt ver. Soru: {{ $json.body.message || $json.body.question || $json.body.prompt || $json.body.text || $json.message }}"
-            }
-          ]
-        },
+        "promptType": "define",
+        "text": "={{ $json.body.message || $json.body.question || $json.body.prompt || $json.body.text || $json.message }}",
         "options": {
-          "keep_alive": "10m",
-          "low_vram": "={{ false }}",
-          "num_gpu": 1
+          "systemMessage": "Sen yardımcı bir eğitim asistanısın. Tüm sorulara mutlaka Türkçe yanıt ver."
         }
       },
-      "type": "@n8n/n8n-nodes-langchain.ollama",
-      "typeVersion": 1,
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
       "position": [
         -320,
         16
       ],
       "id": "1f9b4d77-c918-4bb4-bc24-c1490a6344f6",
-      "name": "Message a model",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        256
+      ],
+      "id": "2c814d6e-80f3-4f20-a16e-953aba89617c",
+      "name": "Groq Chat Model",
       "credentials": {
-        "ollamaApi": {
-          "id": "wai1X8C8ZIQVfKDG",
-          "name": "Ollama account"
+        "groqApi": {
+          "id": "RieqitYyTVZuq3LJ",
+          "name": "Groq account 3"
         }
       }
     },
     {
       "parameters": {
         "operation": "insert",
-        "collection": "=chat_history",
-        "fields": "=user_message, ai_response ",
+        "collection": "chat_history",
+        "fields": "user_message, ai_response",
         "options": {}
       },
       "type": "n8n-nodes-base.mongoDb",
@@ -89,7 +90,7 @@
             {
               "id": "56eb372b-fd23-432e-b9ea-b40c15fe9121",
               "name": "ai_response",
-              "value": "={{ $('Message a model').item.json.content || $('Message a model').item.json.text || $('Message a model').item.json.output }}",
+              "value": "={{ $('AI Agent').item.json.output || $('AI Agent').item.json.text || $('AI Agent').item.json.content }}",
               "type": "string"
             }
           ]
@@ -130,7 +131,6 @@
             "user-agent": "PostmanRuntime/7.53.0",
             "accept": "*/*",
             "cache-control": "no-cache",
-            "postman-token": "5d293b39-1e35-4be9-8ee8-bd10b682f924",
             "host": "localhost:5678",
             "accept-encoding": "gzip, deflate, br",
             "connection": "keep-alive",
@@ -155,19 +155,30 @@
       "main": [
         [
           {
-            "node": "Message a model",
+            "node": "AI Agent",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Message a model": {
+    "AI Agent": {
       "main": [
         [
           {
             "node": "Edit Fields",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
             "index": 0
           }
         ]

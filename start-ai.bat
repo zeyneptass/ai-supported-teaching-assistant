@@ -1,16 +1,16 @@
 @echo off
 chcp 65001 > nul
 echo ==========================================
-echo Akilli Ders Asistani - Docker & AI Baslatici
+echo Akilli Ders Asistani - Docker Baslatici
 echo ==========================================
 
-echo [1/2] Docker servisleri (MongoDB, Ollama, n8n) baslatiliyor...
+echo Docker servisleri (MongoDB, n8n) baslatiliyor...
 docker compose up -d
+if errorlevel 1 (
+  echo Docker servisleri baslatilamadi.
+  pause
+  exit /b 1
+)
 
-echo.
-echo [2/2] Ollama qwen2.5:3b modeli calistiriliyor...
-echo (Cikmak icin /bye yazabilirsiniz)
-echo ------------------------------------------
-docker exec -it akilli_ders_ollama ollama run qwen2.5:3b
-
+docker compose ps
 pause
